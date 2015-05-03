@@ -15,26 +15,6 @@ import com.github.phantomthief.trigger.impl.ScheduledTrigger;
  */
 public class TriggerTest {
 
-    /*@Test
-    public void testTrigger() throws InterruptedException {
-        Trigger trigger = ScheduledTrigger.newBuilder()
-                .on(1, TimeUnit.SECONDS, 10, () -> System.out.println("trig:1"))
-                .on(1, TimeUnit.MINUTES, 100, () -> System.out.println("trig:2"))
-                .fixedRate(3, TimeUnit.SECONDS, () -> System.out.println("trig:3")) //
-                .build();
-        for (int i = 0; i <= 105; i++) {
-            System.out.println("trig.");
-            trigger.markChange();
-        }
-        Thread.sleep(TimeUnit.SECONDS.toMillis(20));
-        for (int i = 0; i <= 100; i++) {
-            System.out.println("trig..");
-            trigger.markChange();
-        }
-        Thread.sleep(TimeUnit.MINUTES.toMillis(1));
-        System.exit(0);
-    }
-    */
     @Test
     public void testTrigger2() throws InterruptedException {
         Trigger trigger = ScheduledTrigger.newBuilder()

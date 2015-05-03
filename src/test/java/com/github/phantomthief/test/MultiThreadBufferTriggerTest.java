@@ -7,7 +7,6 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.Test;
@@ -32,22 +31,18 @@ public class MultiThreadBufferTriggerTest {
                 .build();
         List<String> allData = Collections.synchronizedList(new ArrayList<>());
         dealed = Collections.synchronizedList(new ArrayList<>());
-        Random rnd = new Random();
         List<Thread> threads = new ArrayList<>();
-        for (int j = 0; j <= 100; j++) {
+        for (int j = 0; j <= 10; j++) {
             int base = j;
             Thread t = new Thread() {
 
                 @Override
                 public void run() {
-                    for (int i = 0; i <= 100; i++) {
+                    for (int i = 0; i <= 10; i++) {
                         String e = (base * 10000 + i) + "";
                         allData.add(e);
                         System.out.println("enqueue:" + e);
                         buffer.enqueue(e);
-                        try {
-                            Thread.sleep(rnd.nextInt(100));
-                        } catch (InterruptedException e1) {}
                     }
                 }
 

@@ -7,7 +7,6 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.Test;
@@ -28,12 +27,10 @@ public class BufferTriggerTest {
                 .setContainer(() -> Collections.synchronizedList(new ArrayList<String>()),
                         List::add) //
                 .build();
-        Random rnd = new Random();
         for (int i = 0; i <= 100; i++) {
             String e = i + "";
             System.out.println("enqueue:" + i);
             buffer.enqueue(e);
-            Thread.sleep(rnd.nextInt(1000));
         }
     }
 

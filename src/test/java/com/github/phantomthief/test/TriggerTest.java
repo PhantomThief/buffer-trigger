@@ -26,7 +26,5 @@ public class TriggerTest {
             System.out.println("trig.");
             trigger.markChange();
         }
-        Thread.sleep(TimeUnit.SECONDS.toMillis(20));
-        System.exit(0);
     }
 }

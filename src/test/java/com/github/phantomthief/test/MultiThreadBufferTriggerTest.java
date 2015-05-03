@@ -6,7 +6,9 @@ package com.github.phantomthief.test;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.Test;
@@ -18,7 +20,7 @@ import com.github.phantomthief.collection.impl.BaseBufferTrigger;
  */
 public class MultiThreadBufferTriggerTest {
 
-    private List<String> dealed;
+    private Set<String> dealed;
 
     @Test
     public void test() throws InterruptedException {
@@ -29,8 +31,8 @@ public class MultiThreadBufferTriggerTest {
                 .setContainer(() -> Collections.synchronizedList(new ArrayList<String>()),
                         List::add) //
                 .build();
-        List<String> allData = Collections.synchronizedList(new ArrayList<>());
-        dealed = Collections.synchronizedList(new ArrayList<>());
+        Set<String> allData = Collections.synchronizedSet(new HashSet<>());
+        dealed = Collections.synchronizedSet(new HashSet<>());
         List<Thread> threads = new ArrayList<>();
         for (int j = 0; j <= 10; j++) {
             int base = j;
@@ -57,6 +59,8 @@ public class MultiThreadBufferTriggerTest {
                 e.printStackTrace();
             }
         } );
+        System.out.println(dealed);
+        System.out.println(allData);
         assert(dealed.equals(allData));
     }
 

@@ -112,11 +112,12 @@ public class BaseBufferTrigger<E> implements BufferTrigger<E> {
         @SuppressWarnings("unchecked")
         private Runnable makeFunction(Consumer<C> consumer) {
             return () -> {
+                Object old = null;
                 try {
-                    Object old = buffer.getAndSet(bufferFactory.get());
+                    old = buffer.getAndSet(bufferFactory.get());
                     consumer.accept((C) old);
                 } catch (Throwable e) {
-                    logger.error("Ops.", e);
+                    logger.error("Ops, fail to consumer:{}.", old, e);
                 }
             };
         }

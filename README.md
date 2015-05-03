@@ -1,4 +1,4 @@
-buffer-trigger [![Build Status](https://travis-ci.org/PhantomThief/buffer-trigger.png)](https://travis-ci.org/PhantomThief/buffer-trigger) [![Coverage Status](https://coveralls.io/repos/PhantomThief/buffer-trigger/badge.png)](https://coveralls.io/r/PhantomThief/buffer-trigger)
+buffer-trigger [![Build Status](https://travis-ci.org/PhantomThief/buffer-trigger.png)](https://travis-ci.org/PhantomThief/buffer-trigger) [![Coverage Status](https://coveralls.io/repos/PhantomThief/buffer-trigger/badge.svg?branch=master)](https://coveralls.io/r/PhantomThief/buffer-trigger?branch=master)
 =======================
 
 A local data buffer with customizable data trigger

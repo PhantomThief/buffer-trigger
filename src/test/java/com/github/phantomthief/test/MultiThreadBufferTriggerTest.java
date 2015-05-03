@@ -26,8 +26,7 @@ public class MultiThreadBufferTriggerTest {
     public void test() throws InterruptedException {
         BaseBufferTrigger<String> buffer = BaseBufferTrigger.<String, List<String>> newBuilder() //
                 .on(1, TimeUnit.SECONDS, 10, this::out) //
-                //                .on(10, TimeUnit.SECONDS, 15, this::out) //
-                //                .fixedRate(6, TimeUnit.SECONDS, this::out) //
+                .fixedRate(2, TimeUnit.SECONDS, this::out) //
                 .setContainer(() -> Collections.synchronizedList(new ArrayList<String>()),
                         List::add) //
                 .build();
@@ -59,8 +58,7 @@ public class MultiThreadBufferTriggerTest {
                 e.printStackTrace();
             }
         } );
-        System.out.println(dealed);
-        System.out.println(allData);
+        buffer.manuallyDoTrigger();
         assert(dealed.equals(allData));
     }
 

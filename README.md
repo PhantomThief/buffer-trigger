@@ -19,18 +19,19 @@ A local data buffer with customizable data trigger
 
 ```Java
 
-CollectionBufferTrigger<String, Collection<String>> buffer = CollectionBufferTrigger
-	.<String, Collection<String>> newBuilder() //
-	.on(5, TimeUnit.SECONDS, 10, i -> out("trig:1:" + i)) //
-	.on(10, TimeUnit.SECONDS, 15, i -> out("trig:2:" + i)) //
-	.fixedRate(6, TimeUnit.SECONDS, i -> out("trig:3:" + i)) //
-	.build();
+BaseBufferTrigger<String> buffer = BaseBufferTrigger.<String, List<String>> newBuilder() //
+        .on(5, TimeUnit.SECONDS, 10, i -> out("trig:1:" + i)) //
+        .on(10, TimeUnit.SECONDS, 15, i -> out("trig:2:" + i)) //
+        .fixedRate(6, TimeUnit.SECONDS, i -> out("trig:3:" + i)) //
+        .setContainer(() -> Collections.synchronizedList(new ArrayList<String>()),
+                List::add) //
+        .build();
 Random rnd = new Random();
 for (int i = 0; i <= 100; i++) {
-	String e = i + "";
-	System.out.println("enqueue:" + i);
-	buffer.enqueue(e);
-	Thread.sleep(rnd.nextInt(1000));
+    String e = i + "";
+    System.out.println("enqueue:" + i);
+    buffer.enqueue(e);
+    Thread.sleep(rnd.nextInt(1000));
 }
     
 ```

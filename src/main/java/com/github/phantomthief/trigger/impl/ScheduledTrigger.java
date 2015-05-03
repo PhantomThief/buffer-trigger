@@ -43,7 +43,7 @@ public class ScheduledTrigger implements Trigger {
         private volatile ScheduledFuture<?> scheduled;
 
         public void doAction() {
-            synchronized (this) {
+            synchronized (runnable) {
                 if (scheduled != null) {
                     scheduled.cancel(true);
                     scheduled = null;
@@ -55,10 +55,10 @@ public class ScheduledTrigger implements Trigger {
 
         public void count() {
             if (scheduled == null) {
-                synchronized (this) {
+                synchronized (runnable) {
                     if (scheduled == null) {
                         scheduled = scheduledExecutorService.schedule(() -> {
-                            synchronized (ScheduledHolder.this) {
+                            synchronized (runnable) {
                                 if (Thread.interrupted()) {
                                     return;
                                 }
@@ -71,15 +71,19 @@ public class ScheduledTrigger implements Trigger {
                 }
             }
             if (triggerThreshold > 0) {
-                long incrementAndGet = counter.incrementAndGet();
-                if (incrementAndGet > triggerThreshold) {
-                    synchronized (this) {
-                        if (scheduled != null) {
-                            scheduled.cancel(true);
-                            scheduled = null;
-                        }
-                        runnable.run();
+                synchronized (runnable) {
+                    long incrementAndGet = counter.incrementAndGet();
+                    if (incrementAndGet > triggerThreshold) {
                         counter.set(0);
+                        scheduledExecutorService.execute(() -> {
+                            synchronized (runnable) {
+                                if (scheduled != null) {
+                                    scheduled.cancel(true);
+                                    scheduled = null;
+                                }
+                                runnable.run();
+                            }
+                        } );
                     }
                 }
             }

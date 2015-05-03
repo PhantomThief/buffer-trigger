@@ -65,6 +65,13 @@ public class BaseBufferTrigger<E> implements BufferTrigger<E> {
         private Supplier<C> bufferFactory;
         private BiPredicate<C, E> queueAdder;
 
+        /**
+         * <b>warning:</b> the container must be thread-safed.
+         * 
+         * @param factory
+         * @param queueAdder
+         * @return
+         */
         public Builder<E, C> setContainer(Supplier<C> factory, BiPredicate<C, E> queueAdder) {
             if (factory == null || queueAdder == null) {
                 throw new IllegalArgumentException();

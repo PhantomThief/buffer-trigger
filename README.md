@@ -17,6 +17,8 @@ A local data buffer with customizable data trigger
 </dependency>
 ```
 
+## Usage
+
 ```Java
 
 BaseBufferTrigger<String> buffer = BaseBufferTrigger.<String, List<String>> newBuilder() //
@@ -24,7 +26,7 @@ BaseBufferTrigger<String> buffer = BaseBufferTrigger.<String, List<String>> newB
         .on(10, TimeUnit.SECONDS, 15, i -> out("trig:2:" + i)) //
         .fixedRate(6, TimeUnit.SECONDS, i -> out("trig:3:" + i)) //
         .setContainer(() -> Collections.synchronizedList(new ArrayList<String>()),
-                List::add) //
+                List::add) // default container is Collections.synchronizedSet(new HashSet<>())
         .build();
 Random rnd = new Random();
 for (int i = 0; i <= 100; i++) {
@@ -35,3 +37,7 @@ for (int i = 0; i <= 100; i++) {
 }
     
 ```
+
+## Know issues
+
+on(...) trigger's count didn't ensure the callback function's count is smaller than you gave, for that callback is async run in another thread and when it started the buffer may continue accept data. If you wanna ensure the callback count, a better method is using a bounded blocking queue as container and block the enqueue operation.

@@ -28,6 +28,8 @@ public class ScheduledTrigger implements Trigger {
         private final Runnable runnable;
         private final long triggerThreshold;
 
+        private volatile boolean running = false;
+
         /**
          * @param interval
          * @param runnable
@@ -44,12 +46,17 @@ public class ScheduledTrigger implements Trigger {
 
         public void doAction() {
             synchronized (runnable) {
-                if (scheduled != null) {
-                    scheduled.cancel(true);
-                    scheduled = null;
+                running = true;
+                try {
+                    if (scheduled != null) {
+                        scheduled.cancel(true);
+                        scheduled = null;
+                    }
+                    runnable.run();
+                    counter.set(0);
+                } finally {
+                    running = false;
                 }
-                runnable.run();
-                counter.set(0);
             }
         }
 
@@ -62,9 +69,14 @@ public class ScheduledTrigger implements Trigger {
                                 if (Thread.interrupted()) {
                                     return;
                                 }
-                                runnable.run();
-                                scheduled = null;
-                                counter.set(0);
+                                running = true;
+                                try {
+                                    runnable.run();
+                                    scheduled = null;
+                                    counter.set(0);
+                                } finally {
+                                    running = false;
+                                }
                             }
                         } , interval, TimeUnit.MILLISECONDS);
                     }
@@ -73,15 +85,20 @@ public class ScheduledTrigger implements Trigger {
             if (triggerThreshold > 0) {
                 synchronized (runnable) {
                     long incrementAndGet = counter.incrementAndGet();
-                    if (incrementAndGet > triggerThreshold) {
+                    if (incrementAndGet > triggerThreshold && !running) {
                         counter.set(0);
                         scheduledExecutorService.execute(() -> {
                             synchronized (runnable) {
-                                if (scheduled != null) {
-                                    scheduled.cancel(true);
-                                    scheduled = null;
+                                running = true;
+                                try {
+                                    if (scheduled != null) {
+                                        scheduled.cancel(true);
+                                        scheduled = null;
+                                    }
+                                    runnable.run();
+                                } finally {
+                                    running = false;
                                 }
-                                runnable.run();
                             }
                         } );
                     }

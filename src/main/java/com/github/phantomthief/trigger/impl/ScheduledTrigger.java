@@ -12,7 +12,10 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 import com.github.phantomthief.trigger.Trigger;
@@ -110,6 +113,38 @@ public class ScheduledTrigger implements Trigger {
 
     private final ScheduledExecutorService scheduledExecutorService = Executors
             .newScheduledThreadPool(0);
+
+    {
+
+        ((ScheduledThreadPoolExecutor) scheduledExecutorService)
+                .setThreadFactory(new ThreadFactory() {
+
+                    private final ThreadGroup group;
+                    private final AtomicInteger threadNumber = new AtomicInteger(1);
+                    private final String namePrefix;
+
+                    {
+                        SecurityManager s = System.getSecurityManager();
+                        group = (s != null) ? s.getThreadGroup()
+                                : Thread.currentThread().getThreadGroup();
+                        namePrefix = "pool-buffer-trigger-thread-";
+                    }
+
+                    @Override
+                    public Thread newThread(Runnable r) {
+                        Thread t = new Thread(group, r, namePrefix + threadNumber.getAndIncrement(),
+                                0);
+                        if (t.isDaemon()) {
+                            t.setDaemon(false);
+                        }
+                        if (t.getPriority() != Thread.NORM_PRIORITY) {
+                            t.setPriority(Thread.NORM_PRIORITY);
+                        }
+                        return t;
+                    }
+                });
+    }
+
     private final ConcurrentMap<Long, ScheduledHolder> triggerMap = new ConcurrentHashMap<>();
 
     private final Map<Long, Entry<Long, Runnable>> triggerDefineMap;

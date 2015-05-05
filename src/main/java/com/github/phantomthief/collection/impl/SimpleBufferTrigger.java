@@ -55,7 +55,7 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
         this.consumer = consumer;
         this.exceptionHandler = exceptionHandler;
         for (Entry<Long, Long> entry : triggerMap.entrySet()) {
-            scheduledExecutorService.scheduleAtFixedRate(() -> {
+            scheduledExecutorService.scheduleWithFixedDelay(() -> {
                 synchronized (SimpleBufferTrigger.this) {
                     if (running) {
                         return;

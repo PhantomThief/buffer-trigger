@@ -13,7 +13,7 @@ A local data buffer with customizable data trigger
 <dependency>
     <groupId>com.github.phantomthief</groupId>
     <artifactId>buffer-trigger</artifactId>
-    <version>0.2.0-SNAPSHOT</version>
+    <version>0.2.0</version>
 </dependency>
 ```
 

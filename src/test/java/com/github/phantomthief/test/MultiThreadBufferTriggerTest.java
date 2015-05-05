@@ -13,7 +13,8 @@ import java.util.concurrent.TimeUnit;
 
 import org.junit.Test;
 
-import com.github.phantomthief.collection.impl.BaseBufferTrigger;
+import com.github.phantomthief.collection.BufferTrigger;
+import com.github.phantomthief.collection.impl.SimpleBufferTrigger;
 
 /**
  * @author w.vela
@@ -24,40 +25,35 @@ public class MultiThreadBufferTriggerTest {
 
     @Test
     public void test() throws InterruptedException {
-        BaseBufferTrigger<String> buffer = BaseBufferTrigger.<String, List<String>> newBuilder() //
-                .on(1, TimeUnit.SECONDS, 10, this::out) //
-                .fixedRate(2, TimeUnit.SECONDS, this::out) //
+        BufferTrigger<String> buffer = SimpleBufferTrigger.<String, List<String>> newBuilder() //
+                .on(3, TimeUnit.SECONDS, 1) //
+                .on(2, TimeUnit.SECONDS, 10) //
+                .on(1, TimeUnit.SECONDS, 10000) //
+                .consumer(this::out) //
                 .setContainer(() -> Collections.synchronizedList(new ArrayList<String>()),
                         List::add) //
                 .build();
         Set<String> allData = Collections.synchronizedSet(new HashSet<>());
         dealed = Collections.synchronizedSet(new HashSet<>());
-        List<Thread> threads = new ArrayList<>();
-        for (int j = 0; j <= 10; j++) {
-            int base = j;
-            Thread t = new Thread() {
 
-                @Override
-                public void run() {
-                    for (int i = 0; i <= 10; i++) {
-                        String e = (base * 10000 + i) + "";
-                        allData.add(e);
-                        System.out.println("enqueue:" + e);
-                        buffer.enqueue(e);
-                    }
-                }
-
-            };
-            threads.add(t);
-            t.start();
+        for (int i = 0; i < 10001; i++) {
+            String e = "e:" + i;
+            buffer.enqueue(e);
+            allData.add(e);
         }
-        threads.forEach(t -> {
-            try {
-                t.join();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        } );
+        Thread.sleep(TimeUnit.SECONDS.toMillis(1));
+        for (int i = 0; i < 11; i++) {
+            String e = "e:" + i;
+            buffer.enqueue(e);
+            allData.add(e);
+        }
+        Thread.sleep(TimeUnit.SECONDS.toMillis(1));
+        for (int i = 0; i < 2; i++) {
+            String e = "e:" + i;
+            buffer.enqueue(e);
+            allData.add(e);
+        }
+
         buffer.manuallyDoTrigger();
         assert(dealed.equals(allData));
     }

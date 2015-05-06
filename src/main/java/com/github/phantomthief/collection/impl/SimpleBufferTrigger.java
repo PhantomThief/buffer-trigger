@@ -11,7 +11,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -200,10 +199,8 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
         }
 
         private ScheduledExecutorService makeScheduleExecutor() {
-            ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(0);
-
-            ((ScheduledThreadPoolExecutor) scheduledExecutorService)
-                    .setThreadFactory(new ThreadFactory() {
+            ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(1,
+                    new ThreadFactory() {
 
                         private final ThreadGroup group;
                         private final AtomicInteger threadNumber = new AtomicInteger(1);
@@ -229,6 +226,7 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
                             return t;
                         }
                     });
+
             return scheduledExecutorService;
         }
 

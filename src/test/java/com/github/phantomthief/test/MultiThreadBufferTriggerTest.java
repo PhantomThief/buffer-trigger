@@ -4,11 +4,10 @@
 package com.github.phantomthief.test;
 
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.Test;
@@ -25,13 +24,12 @@ public class MultiThreadBufferTriggerTest {
 
     @Test
     public void test() throws InterruptedException {
-        BufferTrigger<String> buffer = SimpleBufferTrigger.<String, List<String>> newBuilder() //
+        BufferTrigger<String> buffer = SimpleBufferTrigger.<String, Set<String>> newBuilder() //
                 .on(3, TimeUnit.SECONDS, 1) //
                 .on(2, TimeUnit.SECONDS, 10) //
                 .on(1, TimeUnit.SECONDS, 10000) //
                 .consumer(this::out) //
-                .setContainer(() -> Collections.synchronizedList(new ArrayList<String>()),
-                        List::add) //
+                .setContainer(ConcurrentSkipListSet::new, Set::add) //
                 .build();
         Set<String> allData = Collections.synchronizedSet(new HashSet<>());
         dealed = Collections.synchronizedSet(new HashSet<>());
@@ -58,7 +56,7 @@ public class MultiThreadBufferTriggerTest {
         assert(dealed.equals(allData));
     }
 
-    private final void out(List<String> obj) {
+    private final void out(Set<String> obj) {
         System.out.println(
                 new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(System.currentTimeMillis())
                         + "\t" + obj);

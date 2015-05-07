@@ -21,21 +21,21 @@ A local data buffer with customizable data trigger
 
 ```Java
 
-BufferTrigger<String> buffer = SimpleBufferTrigger.<String, List<String>> newBuilder() //
+// declare
+BufferTrigger<String> buffer = SimpleBufferTrigger.<String, Set<String>> newBuilder() //
         .on(3, TimeUnit.SECONDS, 1) //
         .on(2, TimeUnit.SECONDS, 10) //
         .on(1, TimeUnit.SECONDS, 10000) //
         .consumer(this::out) //
-        .setContainer(() -> Collections.synchronizedList(new ArrayList<String>()),
-                List::add) //
+        .setContainer(ConcurrentSkipListSet::new, Set::add) // default is Collections.synchronizedSet(new HashSet())
         .build();
         
-Random rnd = new Random();
-for (int i = 0; i <= 100; i++) {
-    String e = i + "";
-    System.out.println("enqueue:" + i);
-    buffer.enqueue(e);
-    Thread.sleep(rnd.nextInt(1000));
+// enqueue
+buffer.enqueue("i'm ok");
+
+// consumer declare
+private void out(Set<String> set) {
+	set.forEach(System.out::println);
 }
     
 ```
@@ -43,4 +43,4 @@ for (int i = 0; i <= 100; i++) {
 ## Special Thanks
 
 perlmonk with his great team gives me a huge help.
-(https://github.com/aloha-app/thrift-client-pool-java)
+(https://github.com/aloha-app)

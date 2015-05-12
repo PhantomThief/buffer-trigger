@@ -67,7 +67,9 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
                     try {
                         old = buffer.getAndSet(bufferFactory.get());
                         counter.set(0);
-                        consumer.accept(old);
+                        if (old != null) {
+                            consumer.accept(old);
+                        }
                     } catch (Throwable e) {
                         if (this.exceptionHandler != null) {
                             try {
@@ -110,7 +112,9 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
             try {
                 old = buffer.getAndSet(bufferFactory.get());
                 counter.set(0);
-                consumer.accept(old);
+                if (old != null) {
+                    consumer.accept(old);
+                }
             } catch (Throwable e) {
                 if (this.exceptionHandler != null) {
                     try {

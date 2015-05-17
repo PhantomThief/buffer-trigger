@@ -11,9 +11,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
@@ -44,8 +42,6 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
     private final BiConsumer<Throwable, Object> exceptionHandler;
     private final AtomicReference<Object> buffer = new AtomicReference<>();
 
-    private volatile boolean running;
-
     private SimpleBufferTrigger(Supplier<Object> bufferFactory, BiPredicate<Object, E> queueAdder,
             ScheduledExecutorService scheduledExecutorService, Consumer<Object> consumer,
             Map<Long, Long> triggerMap, BiConsumer<Throwable, Object> exceptionHandler) {
@@ -56,13 +52,9 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
         for (Entry<Long, Long> entry : triggerMap.entrySet()) {
             scheduledExecutorService.scheduleWithFixedDelay(() -> {
                 synchronized (SimpleBufferTrigger.this) {
-                    if (running) {
-                        return;
-                    }
                     if (counter.get() < entry.getValue()) {
                         return;
                     }
-                    running = true;
                     Object old = null;
                     try {
                         old = buffer.getAndSet(bufferFactory.get());
@@ -80,8 +72,6 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
                         } else {
                             e.printStackTrace();
                         }
-                    } finally {
-                        running = false;
                     }
                 }
             } , entry.getKey(), entry.getKey(), TimeUnit.MILLISECONDS);
@@ -107,7 +97,6 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
     @Override
     public void manuallyDoTrigger() {
         synchronized (SimpleBufferTrigger.this) {
-            running = true;
             Object old = null;
             try {
                 old = buffer.getAndSet(bufferFactory.get());
@@ -125,8 +114,6 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
                 } else {
                     e.printStackTrace();
                 }
-            } finally {
-                running = false;
             }
         }
     }
@@ -197,38 +184,17 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
             if (queueAdder == null) {
                 queueAdder = (c, e) -> ((Set<E>) c).add(e);
             }
-            if (scheduledExecutorService == null) {
+            if (!triggerMap.isEmpty() && scheduledExecutorService == null) {
                 scheduledExecutorService = makeScheduleExecutor();
             }
         }
 
         private ScheduledExecutorService makeScheduleExecutor() {
-            ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(1,
-                    new ThreadFactory() {
-
-                        private final ThreadGroup group;
-                        private final AtomicInteger threadNumber = new AtomicInteger(1);
-                        private final String namePrefix;
-
-                        {
-                            SecurityManager s = System.getSecurityManager();
-                            group = (s != null) ? s.getThreadGroup()
-                                    : Thread.currentThread().getThreadGroup();
-                            namePrefix = "pool-simple-buffer-trigger-thread-";
-                        }
-
-                        @Override
-                        public Thread newThread(Runnable r) {
-                            Thread t = new Thread(group, r,
-                                    namePrefix + threadNumber.getAndIncrement(), 0);
-                            if (t.isDaemon()) {
-                                t.setDaemon(false);
-                            }
-                            if (t.getPriority() != Thread.NORM_PRIORITY) {
-                                t.setPriority(Thread.NORM_PRIORITY);
-                            }
-                            return t;
-                        }
+            ScheduledExecutorService scheduledExecutorService = Executors
+                    .newScheduledThreadPool(Math.max(1, triggerMap.size()), r -> {
+                        Thread thread = new Thread(r);
+                        thread.setName("pool-simple-buffer-trigger-thread-" + thread.getId());
+                        return thread;
                     });
 
             return scheduledExecutorService;

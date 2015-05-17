@@ -56,6 +56,59 @@ public class MultiThreadBufferTriggerTest {
         assert(dealed.equals(allData));
     }
 
+    @Test
+    public void test2() throws InterruptedException {
+        BufferTrigger<String> buffer = SimpleBufferTrigger.<String, Set<String>> newBuilder() //
+                .on(3, TimeUnit.SECONDS, 1) //
+                .on(2, TimeUnit.SECONDS, 10) //
+                .on(1, TimeUnit.SECONDS, 10000) //
+                .setExceptionHandler((e, c) -> System.err.println(c)) //
+                .consumer(this::exception) //
+                .build();
+        for (int i = 0; i < 1000; i++) {
+            String e = "e:" + i;
+            buffer.enqueue(e);
+        }
+        Thread.sleep(TimeUnit.SECONDS.toMillis(4));
+        for (int i = 0; i < 2; i++) {
+            String e = "e:" + i;
+            buffer.enqueue(e);
+        }
+        buffer.manuallyDoTrigger();
+    }
+
+    @Test
+    public void test3() throws InterruptedException {
+        BufferTrigger<String> buffer = SimpleBufferTrigger.<String, Set<String>> newBuilder() //
+                .on(1, TimeUnit.SECONDS, 1) //
+                .on(2, TimeUnit.SECONDS, 2) //
+                .consumer(this::delay) //
+                .build();
+        for (int i = 0; i < 10; i++) {
+            String e = "e:" + i;
+            buffer.enqueue(e);
+        }
+        Thread.sleep(TimeUnit.SECONDS.toMillis(2));
+        for (int i = 0; i < 10; i++) {
+            String e = "e:" + i;
+            buffer.enqueue(e);
+        }
+        Thread.sleep(TimeUnit.SECONDS.toMillis(2));
+        buffer.manuallyDoTrigger();
+    }
+
+    private final void exception(Set<String> obj) {
+        throw new RuntimeException();
+    }
+
+    private final void delay(Set<String> obj) {
+        try {
+            Thread.sleep(TimeUnit.SECONDS.toMillis(2));
+        } catch (InterruptedException e) {
+            // 
+        }
+    }
+
     private final void out(Set<String> obj) {
         System.out.println(
                 new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(System.currentTimeMillis())
@@ -64,7 +117,7 @@ public class MultiThreadBufferTriggerTest {
         try {
             Thread.sleep(10);
         } catch (InterruptedException e) {
-            e.printStackTrace();
+            //
         }
     }
 }

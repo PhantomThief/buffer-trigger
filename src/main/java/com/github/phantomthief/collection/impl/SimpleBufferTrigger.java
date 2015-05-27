@@ -41,14 +41,19 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
     private final Supplier<Object> bufferFactory;
     private final BiConsumer<Throwable, Object> exceptionHandler;
     private final AtomicReference<Object> buffer = new AtomicReference<>();
+    private final long maxBufferCount;
+    private final Consumer<E> rejectHandler;
 
     private SimpleBufferTrigger(Supplier<Object> bufferFactory, BiPredicate<Object, E> queueAdder,
             ScheduledExecutorService scheduledExecutorService, Consumer<Object> consumer,
-            Map<Long, Long> triggerMap, BiConsumer<Throwable, Object> exceptionHandler) {
+            Map<Long, Long> triggerMap, BiConsumer<Throwable, Object> exceptionHandler,
+            long maxBufferCount, Consumer<E> rejectHandler) {
         this.queueAdder = queueAdder;
         this.bufferFactory = bufferFactory;
         this.consumer = consumer;
         this.exceptionHandler = exceptionHandler;
+        this.maxBufferCount = maxBufferCount;
+        this.rejectHandler = rejectHandler;
         for (Entry<Long, Long> entry : triggerMap.entrySet()) {
             scheduledExecutorService.scheduleWithFixedDelay(() -> {
                 synchronized (SimpleBufferTrigger.this) {
@@ -78,15 +83,18 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
         }
     }
 
-    /* (non-Javadoc)
-     * @see com.github.phantomthief.collection.BufferTrigger#enqueue(java.lang.Object)
-     */
     @Override
-    public void enqueue(E element) {
+    public void enqueue(E element, long weight) {
+        if (maxBufferCount > 0 && counter.get() >= maxBufferCount) {
+            if (rejectHandler != null) {
+                rejectHandler.accept(element);
+            }
+            return;
+        }
         Object thisBuffer = buffer.updateAndGet(old -> old != null ? old : bufferFactory.get());
         boolean addSuccess = queueAdder.test(thisBuffer, element);
         if (addSuccess) {
-            counter.incrementAndGet();
+            counter.addAndGet(weight);
         }
 
     }
@@ -125,6 +133,8 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
         private BiPredicate<C, E> queueAdder;
         private Consumer<C> consumer;
         private BiConsumer<Throwable, C> exceptionHandler;
+        private long maxBufferCount = -1;
+        private Consumer<E> rejectHandler;
         private final Map<Long, Long> triggerMap = new HashMap<>();
 
         /**
@@ -164,13 +174,24 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
             return this;
         }
 
+        public Builder<E, C> maxBufferCount(long count) {
+            this.maxBufferCount = count;
+            return this;
+        }
+
+        public Builder<E, C> rejectHandler(Consumer<E> rejectHandler) {
+            this.rejectHandler = rejectHandler;
+            return this;
+        }
+
         @SuppressWarnings("unchecked")
         public SimpleBufferTrigger<E> build() {
             ensure();
             return new SimpleBufferTrigger<E>((Supplier<Object>) bufferFactory,
                     (BiPredicate<Object, E>) queueAdder, scheduledExecutorService,
                     (Consumer<Object>) consumer, triggerMap,
-                    (BiConsumer<Throwable, Object>) exceptionHandler);
+                    (BiConsumer<Throwable, Object>) exceptionHandler, maxBufferCount,
+                    rejectHandler);
         }
 
         @SuppressWarnings("unchecked")

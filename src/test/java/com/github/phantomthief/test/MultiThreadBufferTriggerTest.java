@@ -97,6 +97,22 @@ public class MultiThreadBufferTriggerTest {
         buffer.manuallyDoTrigger();
     }
 
+    @Test
+    public void test4() throws InterruptedException {
+        BufferTrigger<String> buffer = SimpleBufferTrigger.<String, Set<String>> newBuilder() //
+                .on(1, TimeUnit.SECONDS, 1) //
+                .maxBufferCount(2) //
+                .rejectHandler(e -> System.out.println("reject:" + e)) //
+                .consumer(this::delay) //
+                .build();
+        for (int i = 0; i < 10; i++) {
+            String e = "e:" + i;
+            buffer.enqueue(e);
+        }
+        Thread.sleep(TimeUnit.SECONDS.toMillis(2));
+        buffer.manuallyDoTrigger();
+    }
+
     private final void exception(Set<String> obj) {
         throw new RuntimeException();
     }

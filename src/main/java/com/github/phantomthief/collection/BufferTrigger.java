@@ -8,7 +8,11 @@ package com.github.phantomthief.collection;
  */
 public interface BufferTrigger<E> {
 
-    public void enqueue(E element);
+    public void enqueue(E element, long weight);
+
+    public default void enqueue(E element) {
+        enqueue(element, 1);
+    }
 
     public void manuallyDoTrigger();
 }

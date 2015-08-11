@@ -13,7 +13,7 @@ A local data buffer with customizable data trigger
 <dependency>
     <groupId>com.github.phantomthief</groupId>
     <artifactId>buffer-trigger</artifactId>
-    <version>0.2.1</version>
+    <version>0.2.5</version>
 </dependency>
 ```
 
@@ -34,9 +34,14 @@ BufferTrigger<String> buffer = SimpleBufferTrigger.<String, Set<String>> newBuil
 buffer.enqueue("i'm ok");
 
 // consumer declare
-private void out(Set<String> set) {
+private void out(Collection<String> set) {
 	set.forEach(System.out::println);
 }
+
+// simple queue ver.
+BufferTrigger<String> buffer = SimpleBufferTrigger.newBlockingQueueBuilder(3, this::out)
+                .on(5, TimeUnit.SECONDS, 1) //
+                .build();
     
 ```
 

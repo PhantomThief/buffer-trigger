@@ -4,6 +4,7 @@
 package com.github.phantomthief.test;
 
 import java.text.SimpleDateFormat;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
@@ -98,6 +99,7 @@ public class MultiThreadBufferTriggerTest {
     }
 
     @Test
+    @SuppressWarnings("deprecation")
     public void test4() throws InterruptedException {
         BufferTrigger<String> buffer = SimpleBufferTrigger.<String, Set<String>> newBuilder() //
                 .on(1, TimeUnit.SECONDS, 1) //
@@ -113,12 +115,27 @@ public class MultiThreadBufferTriggerTest {
         buffer.manuallyDoTrigger();
     }
 
+    @Test
+    public void test5() throws InterruptedException {
+        BufferTrigger<String> buffer = SimpleBufferTrigger.newBlockingQueueBuilder(3, this::delay)
+                .on(5, TimeUnit.SECONDS, 1) //
+                .build();
+        for (int i = 0; i < 20; i++) {
+            String e = "f:" + i;
+            System.out.println("enqueue:" + e);
+            buffer.enqueue(e);
+        }
+        Thread.sleep(TimeUnit.SECONDS.toMillis(2));
+        buffer.manuallyDoTrigger();
+    }
+
     private final void exception(Set<String> obj) {
         throw new RuntimeException();
     }
 
-    private final void delay(Set<String> obj) {
+    private final void delay(Collection<String> obj) {
         try {
+            System.out.println("delayed:" + obj);
             Thread.sleep(TimeUnit.SECONDS.toMillis(2));
         } catch (InterruptedException e) {
             // 

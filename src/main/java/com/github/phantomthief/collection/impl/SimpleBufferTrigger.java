@@ -3,13 +3,18 @@
  */
 package com.github.phantomthief.collection.impl;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -26,6 +31,13 @@ import com.github.phantomthief.collection.BufferTrigger;
  */
 public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
 
+    private static org.slf4j.Logger logger = org.slf4j.LoggerFactory
+            .getLogger(SimpleBufferTrigger.class);
+
+    private static final int ARRAY_LIST_THRESHOLD = 1000;
+    private static final long WAIT_FOR_QUEUE = TimeUnit.SECONDS.toMillis(1);
+    private static final int RETRY_CONSUMER_QUEUE_TIMES = 3;
+
     /**
      * trigger like redis's rdb
      * 
@@ -41,7 +53,9 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
     private final Supplier<Object> bufferFactory;
     private final BiConsumer<Throwable, Object> exceptionHandler;
     private final AtomicReference<Object> buffer = new AtomicReference<>();
+    @Deprecated
     private final long maxBufferCount;
+    @Deprecated
     private final Consumer<E> rejectHandler;
 
     private SimpleBufferTrigger(Supplier<Object> bufferFactory, BiPredicate<Object, E> queueAdder,
@@ -75,7 +89,7 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
                                 // do nothing
                             }
                         } else {
-                            e.printStackTrace();
+                            logger.error("Ops.", e);
                         }
                     }
                 }
@@ -153,8 +167,8 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
             return this;
         }
 
-        public Builder<E, C> setScheduleExecutorService(
-                ScheduledExecutorService scheduledExecutorService) {
+        public Builder<E, C>
+                setScheduleExecutorService(ScheduledExecutorService scheduledExecutorService) {
             this.scheduledExecutorService = scheduledExecutorService;
             return this;
         }
@@ -174,11 +188,19 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
             return this;
         }
 
+        /**
+         * it's better dealing this in container
+         */
+        @Deprecated
         public Builder<E, C> maxBufferCount(long count) {
             this.maxBufferCount = count;
             return this;
         }
 
+        /**
+         * it's better dealing this in container
+         */
+        @Deprecated
         public Builder<E, C> rejectHandler(Consumer<E> rejectHandler) {
             this.rejectHandler = rejectHandler;
             return this;
@@ -225,6 +247,47 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
 
     public static final <E, C> Builder<E, C> newBuilder() {
         return new Builder<>();
-    };
+    }
+
+    public static final <E> Builder<E, BlockingQueue<E>> newBlockingQueueBuilder(int queueLength,
+            Consumer<List<E>> consumer) {
+        return new Builder<E, BlockingQueue<E>>() //
+                .setContainer(() -> {
+                    if (queueLength > ARRAY_LIST_THRESHOLD) {
+                        return new LinkedBlockingQueue<>(queueLength);
+                    } else {
+                        return new ArrayBlockingQueue<>(queueLength);
+                    }
+                } , (queue, element) -> {
+                    try {
+                        queue.put(element);
+                        return true;
+                    } catch (Exception e) {
+                        Thread.currentThread().interrupt();
+                        return false;
+                    }
+                }) //
+                .consumer(queue -> {
+                    int times = 0;
+                    while (!queue.isEmpty() && times++ < RETRY_CONSUMER_QUEUE_TIMES) {
+                        if (!queue.isEmpty()) {
+                            times = 0;
+                            List<E> list = new ArrayList<>(queue.size());
+                            queue.drainTo(list);
+                            try {
+                                consumer.accept(list);
+                            } catch (Throwable e) {
+                                logger.error("Ops.", e);
+                            }
+                        } else {
+                            try {
+                                Thread.sleep(WAIT_FOR_QUEUE);
+                            } catch (InterruptedException e) {
+                                Thread.currentThread().interrupt();
+                            }
+                        }
+                    }
+                });
+    }
 
 }

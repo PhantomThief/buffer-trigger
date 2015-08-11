@@ -13,6 +13,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
@@ -249,6 +250,16 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
         return new Builder<>();
     }
 
+    public static final <E> Builder<E, Map<E, Integer>> newCounterBuilder() {
+        return new Builder<E, Map<E, Integer>>() //
+                .setContainer(ConcurrentHashMap::new, (map, element) -> {
+                    map.merge(element, 1,
+                            (oldValue, appendValue) -> oldValue == null ? appendValue : oldValue
+                                    + appendValue);
+                    return true;
+                });
+    }
+
     public static final <E> Builder<E, BlockingQueue<E>> newBlockingQueueBuilder(int queueLength,
             Consumer<List<E>> consumer) {
         return newBlockingQueueBuilder(queueLength, consumer, null);
@@ -256,8 +267,7 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
 
     public static final <E> Builder<E, BlockingQueue<E>> newBlockingQueueBuilder(int queueLength,
             Consumer<List<E>> consumer, BiConsumer<Throwable, List<E>> exceptionHandler) {
-        Builder<E, BlockingQueue<E>> builder = new Builder<E, BlockingQueue<E>>();
-        return builder //
+        return new Builder<E, BlockingQueue<E>>() //
                 .setContainer(() -> {
                     if (queueLength > ARRAY_LIST_THRESHOLD) {
                         return new LinkedBlockingQueue<>(queueLength);

@@ -134,7 +134,7 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
                         // do nothing
                     }
                 } else {
-                    e.printStackTrace();
+                    logger.error("Ops.", e);
                 }
             }
         }
@@ -251,7 +251,13 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
 
     public static final <E> Builder<E, BlockingQueue<E>> newBlockingQueueBuilder(int queueLength,
             Consumer<List<E>> consumer) {
-        return new Builder<E, BlockingQueue<E>>() //
+        return newBlockingQueueBuilder(queueLength, consumer, null);
+    }
+
+    public static final <E> Builder<E, BlockingQueue<E>> newBlockingQueueBuilder(int queueLength,
+            Consumer<List<E>> consumer, BiConsumer<Throwable, List<E>> exceptionHandler) {
+        Builder<E, BlockingQueue<E>> builder = new Builder<E, BlockingQueue<E>>();
+        return builder //
                 .setContainer(() -> {
                     if (queueLength > ARRAY_LIST_THRESHOLD) {
                         return new LinkedBlockingQueue<>(queueLength);
@@ -277,7 +283,15 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
                             try {
                                 consumer.accept(list);
                             } catch (Throwable e) {
-                                logger.error("Ops.", e);
+                                if (exceptionHandler != null) {
+                                    try {
+                                        exceptionHandler.accept(e, list);
+                                    } catch (Throwable idontcare) {
+                                        // do nothing
+                                    }
+                                } else {
+                                    logger.error("Ops.", e);
+                                }
                             }
                         } else {
                             try {

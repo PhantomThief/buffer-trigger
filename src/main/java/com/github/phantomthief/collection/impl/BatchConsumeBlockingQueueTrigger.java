@@ -24,6 +24,7 @@ public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
 
     private final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(getClass());
 
+    private final int batchConsumerSize;
     private final BlockingQueue<E> queue;
     private final Consumer<List<E>> consumer;
     private final BiConsumer<Throwable, List<E>> exceptionHandler;
@@ -38,6 +39,7 @@ public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
     private BatchConsumeBlockingQueueTrigger(int batchConsumerSize, BlockingQueue<E> queue,
             BiConsumer<Throwable, List<E>> exceptionHandler, Consumer<List<E>> consumer,
             long tickTime) {
+        this.batchConsumerSize = batchConsumerSize;
         this.queue = queue;
         this.consumer = consumer;
         this.exceptionHandler = exceptionHandler;
@@ -47,17 +49,19 @@ public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
                 while (queue.size() >= batchConsumerSize) {
                     List<E> toConsumerData = new ArrayList<>(batchConsumerSize);
                     queue.drainTo(toConsumerData, batchConsumerSize);
-                    try {
-                        consumer.accept(toConsumerData);
-                    } catch (Throwable e) {
-                        if (exceptionHandler != null) {
-                            try {
-                                exceptionHandler.accept(e, toConsumerData);
-                            } catch (Throwable ex) {
-                                // do nothing;
+                    if (!toConsumerData.isEmpty()) {
+                        try {
+                            consumer.accept(toConsumerData);
+                        } catch (Throwable e) {
+                            if (exceptionHandler != null) {
+                                try {
+                                    exceptionHandler.accept(e, toConsumerData);
+                                } catch (Throwable ex) {
+                                    // do nothing;
+                                }
+                            } else {
+                                logger.error("Ops.", e);
                             }
-                        } else {
-                            logger.error("Ops.", e);
                         }
                     }
                 }
@@ -89,19 +93,21 @@ public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
     public void manuallyDoTrigger() {
         synchronized (BatchConsumeBlockingQueueTrigger.this) {
             while (!queue.isEmpty()) {
-                List<E> toConsumerData = new ArrayList<>(queue.size());
-                queue.drainTo(toConsumerData);
-                try {
-                    consumer.accept(toConsumerData);
-                } catch (Throwable e) {
-                    if (exceptionHandler != null) {
-                        try {
-                            exceptionHandler.accept(e, toConsumerData);
-                        } catch (Throwable ex) {
-                            // do nothing;
+                List<E> toConsumerData = new ArrayList<>(Math.min(queue.size(), batchConsumerSize));
+                queue.drainTo(toConsumerData, batchConsumerSize);
+                if (!toConsumerData.isEmpty()) {
+                    try {
+                        consumer.accept(toConsumerData);
+                    } catch (Throwable e) {
+                        if (exceptionHandler != null) {
+                            try {
+                                exceptionHandler.accept(e, toConsumerData);
+                            } catch (Throwable ex) {
+                                // do nothing;
+                            }
+                        } else {
+                            logger.error("Ops.", e);
                         }
-                    } else {
-                        logger.error("Ops.", e);
                     }
                 }
             }
@@ -160,14 +166,14 @@ public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
         }
 
         private void ensure() {
+            if (consumer == null) {
+                throw new IllegalArgumentException("no consumer found.");
+            }
             if (tickTime <= 0) {
                 tickTime = DEFAULT_TICK_TIME;
             }
             if (queue == null) {
                 queue = new LinkedBlockingQueue<>();
-            }
-            if (consumer == null) {
-                throw new IllegalArgumentException("no consumer found.");
             }
         }
     }

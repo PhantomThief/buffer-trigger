@@ -260,11 +260,19 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
                 });
     }
 
+    /**
+     * it's better using {@code com.github.phantomthief.collection.impl.BatchConsumeBlockingQueueTrigger<E>}
+     */
+    @Deprecated
     public static final <E> Builder<E, BlockingQueue<E>> newBlockingQueueBuilder(int queueLength,
             Consumer<List<E>> consumer) {
         return newBlockingQueueBuilder(queueLength, consumer, null);
     }
 
+    /**
+     * it's better using {@code com.github.phantomthief.collection.impl.BatchConsumeBlockingQueueTrigger<E>}
+     */
+    @Deprecated
     public static final <E> Builder<E, BlockingQueue<E>> newBlockingQueueBuilder(int queueLength,
             Consumer<List<E>> consumer, BiConsumer<Throwable, List<E>> exceptionHandler) {
         return new Builder<E, BlockingQueue<E>>() //

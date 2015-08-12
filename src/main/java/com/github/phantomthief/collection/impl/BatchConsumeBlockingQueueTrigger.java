@@ -159,9 +159,6 @@ public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
                     exceptionHandler, consumer, tickTime);
         }
 
-        /**
-         * 
-         */
         private void ensure() {
             if (tickTime <= 0) {
                 tickTime = DEFAULT_TICK_TIME;
@@ -173,6 +170,9 @@ public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
                 throw new IllegalArgumentException("no consumer found.");
             }
         }
+    }
 
+    public static final <E> Builder<E> newBuilder() {
+        return new Builder<>();
     }
 }

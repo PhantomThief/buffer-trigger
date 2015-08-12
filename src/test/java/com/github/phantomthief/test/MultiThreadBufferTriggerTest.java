@@ -116,6 +116,7 @@ public class MultiThreadBufferTriggerTest {
     }
 
     @Test
+    @Deprecated
     public void test5() throws InterruptedException {
         BufferTrigger<String> buffer = SimpleBufferTrigger.newBlockingQueueBuilder(3, this::delay)
                 .on(5, TimeUnit.SECONDS, 1) //

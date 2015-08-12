@@ -47,6 +47,7 @@ public class MultiThreadQueueTriggerTest {
         try {
             System.out.println("delayed:" + obj);
             Thread.sleep(TimeUnit.SECONDS.toMillis(2));
+            dealed.addAll(obj);
         } catch (InterruptedException e) {
             // 
         }

@@ -86,6 +86,10 @@ public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
         throw new UnsupportedOperationException();
     }
 
+    public int getPendingCount() {
+        return queue.size();
+    }
+
     /* (non-Javadoc)
      * @see com.github.phantomthief.collection.BufferTrigger#manuallyDoTrigger()
      */

@@ -115,21 +115,6 @@ public class MultiThreadBufferTriggerTest {
         buffer.manuallyDoTrigger();
     }
 
-    @Test
-    @Deprecated
-    public void test5() throws InterruptedException {
-        BufferTrigger<String> buffer = SimpleBufferTrigger.newBlockingQueueBuilder(3, this::delay)
-                .on(5, TimeUnit.SECONDS, 1) //
-                .build();
-        for (int i = 0; i < 20; i++) {
-            String e = "f:" + i;
-            System.out.println("enqueue:" + e);
-            buffer.enqueue(e);
-        }
-        Thread.sleep(TimeUnit.SECONDS.toMillis(2));
-        buffer.manuallyDoTrigger();
-    }
-
     private final void exception(Set<String> obj) {
         throw new RuntimeException();
     }

@@ -3,19 +3,14 @@
  */
 package com.github.phantomthief.collection.impl;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -26,6 +21,7 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import com.github.phantomthief.collection.BufferTrigger;
+import com.github.phantomthief.collection.ThrowingConsumer;
 
 /**
  * @author w.vela
@@ -34,10 +30,6 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
 
     private static org.slf4j.Logger logger = org.slf4j.LoggerFactory
             .getLogger(SimpleBufferTrigger.class);
-
-    private static final int ARRAY_LIST_THRESHOLD = 1000;
-    private static final long WAIT_FOR_QUEUE = TimeUnit.SECONDS.toMillis(1);
-    private static final int RETRY_CONSUMER_QUEUE_TIMES = 3;
 
     /**
      * trigger like redis's rdb
@@ -49,7 +41,7 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
      */
 
     private final AtomicLong counter = new AtomicLong();
-    private final Consumer<Object> consumer;
+    private final ThrowingConsumer<Object> consumer;
     private final BiPredicate<Object, E> queueAdder;
     private final Supplier<Object> bufferFactory;
     private final BiConsumer<Throwable, Object> exceptionHandler;
@@ -60,7 +52,7 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
     private final Consumer<E> rejectHandler;
 
     private SimpleBufferTrigger(Supplier<Object> bufferFactory, BiPredicate<Object, E> queueAdder,
-            ScheduledExecutorService scheduledExecutorService, Consumer<Object> consumer,
+            ScheduledExecutorService scheduledExecutorService, ThrowingConsumer<Object> consumer,
             Map<Long, Long> triggerMap, BiConsumer<Throwable, Object> exceptionHandler,
             long maxBufferCount, Consumer<E> rejectHandler) {
         this.queueAdder = queueAdder;
@@ -80,7 +72,7 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
                         old = buffer.getAndSet(bufferFactory.get());
                         counter.set(0);
                         if (old != null) {
-                            consumer.accept(old);
+                            consumer.acceptThrows(old);
                         }
                     } catch (Throwable e) {
                         if (this.exceptionHandler != null) {
@@ -146,7 +138,7 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
         private ScheduledExecutorService scheduledExecutorService;
         private Supplier<C> bufferFactory;
         private BiPredicate<C, E> queueAdder;
-        private Consumer<C> consumer;
+        private ThrowingConsumer<C> consumer;
         private BiConsumer<Throwable, C> exceptionHandler;
         private long maxBufferCount = -1;
         private Consumer<E> rejectHandler;
@@ -184,7 +176,7 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
             return this;
         }
 
-        public Builder<E, C> consumer(Consumer<C> consumer) {
+        public Builder<E, C> consumer(ThrowingConsumer<C> consumer) {
             this.consumer = consumer;
             return this;
         }
@@ -212,7 +204,7 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
             ensure();
             return new SimpleBufferTrigger<E>((Supplier<Object>) bufferFactory,
                     (BiPredicate<Object, E>) queueAdder, scheduledExecutorService,
-                    (Consumer<Object>) consumer, triggerMap,
+                    (ThrowingConsumer<Object>) consumer, triggerMap,
                     (BiConsumer<Throwable, Object>) exceptionHandler, maxBufferCount,
                     rejectHandler);
         }
@@ -259,67 +251,4 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
                     return true;
                 });
     }
-
-    /**
-     * it's better using {@code com.github.phantomthief.collection.impl.BatchConsumeBlockingQueueTrigger<E>}
-     */
-    @Deprecated
-    public static final <E> Builder<E, BlockingQueue<E>> newBlockingQueueBuilder(int queueLength,
-            Consumer<List<E>> consumer) {
-        return newBlockingQueueBuilder(queueLength, consumer, null);
-    }
-
-    /**
-     * it's better using {@code com.github.phantomthief.collection.impl.BatchConsumeBlockingQueueTrigger<E>}
-     */
-    @Deprecated
-    public static final <E> Builder<E, BlockingQueue<E>> newBlockingQueueBuilder(int queueLength,
-            Consumer<List<E>> consumer, BiConsumer<Throwable, List<E>> exceptionHandler) {
-        return new Builder<E, BlockingQueue<E>>() //
-                .setContainer(() -> {
-                    if (queueLength > ARRAY_LIST_THRESHOLD) {
-                        return new LinkedBlockingQueue<>(queueLength);
-                    } else {
-                        return new ArrayBlockingQueue<>(queueLength);
-                    }
-                } , (queue, element) -> {
-                    try {
-                        queue.put(element);
-                        return true;
-                    } catch (Exception e) {
-                        Thread.currentThread().interrupt();
-                        return false;
-                    }
-                }) //
-                .consumer(queue -> {
-                    int times = 0;
-                    while (!queue.isEmpty() && times++ < RETRY_CONSUMER_QUEUE_TIMES) {
-                        if (!queue.isEmpty()) {
-                            times = 0;
-                            List<E> list = new ArrayList<>(queue.size());
-                            queue.drainTo(list);
-                            try {
-                                consumer.accept(list);
-                            } catch (Throwable e) {
-                                if (exceptionHandler != null) {
-                                    try {
-                                        exceptionHandler.accept(e, list);
-                                    } catch (Throwable idontcare) {
-                                        // do nothing
-                                    }
-                                } else {
-                                    logger.error("Ops.", e);
-                                }
-                            }
-                        } else {
-                            try {
-                                Thread.sleep(WAIT_FOR_QUEUE);
-                            } catch (InterruptedException e) {
-                                Thread.currentThread().interrupt();
-                            }
-                        }
-                    }
-                });
-    }
-
 }

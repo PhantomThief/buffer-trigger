@@ -22,6 +22,7 @@ import java.util.function.Supplier;
 
 import com.github.phantomthief.collection.BufferTrigger;
 import com.github.phantomthief.collection.ThrowingConsumer;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 /**
  * @author w.vela
@@ -226,16 +227,12 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
         }
 
         private ScheduledExecutorService makeScheduleExecutor() {
-            ScheduledExecutorService scheduledExecutorService = Executors
-                    .newScheduledThreadPool(Math.max(1, triggerMap.size()), r -> {
-                        Thread thread = new Thread(r);
-                        thread.setName("pool-simple-buffer-trigger-thread-" + thread.getId());
-                        return thread;
-                    });
+            ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(
+                    Math.max(1, triggerMap.size()), new ThreadFactoryBuilder()
+                            .setNameFormat("pool-simple-buffer-trigger-thread-%d").build());
 
             return scheduledExecutorService;
         }
-
     }
 
     public static final <E, C> Builder<E, C> newBuilder() {

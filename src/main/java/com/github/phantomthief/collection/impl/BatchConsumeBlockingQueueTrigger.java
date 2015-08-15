@@ -16,6 +16,7 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 import com.github.phantomthief.collection.BufferTrigger;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 /**
  * @author w.vela
@@ -30,20 +31,14 @@ public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
     private final BiConsumer<Throwable, List<E>> exceptionHandler;
     private final ScheduledExecutorService scheduledExecutorService;
 
-    /**
-     * @param batchConsumerSize
-     * @param queue
-     * @param consumer
-     * @param tickTime
-     */
     private BatchConsumeBlockingQueueTrigger(int batchConsumerSize, BlockingQueue<E> queue,
             BiConsumer<Throwable, List<E>> exceptionHandler, Consumer<List<E>> consumer,
-            long tickTime) {
+            ScheduledExecutorService scheduledExecutorService, long tickTime) {
         this.batchConsumerSize = batchConsumerSize;
         this.queue = queue;
         this.consumer = consumer;
         this.exceptionHandler = exceptionHandler;
-        this.scheduledExecutorService = Executors.newScheduledThreadPool(1);
+        this.scheduledExecutorService = scheduledExecutorService;
         this.scheduledExecutorService.scheduleWithFixedDelay(() -> {
             synchronized (BatchConsumeBlockingQueueTrigger.this) {
                 while (queue.size() >= batchConsumerSize) {
@@ -123,11 +118,18 @@ public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
         private static final int ARRAY_LIST_THRESHOLD = 1000;
         private static final long DEFAULT_TICK_TIME = TimeUnit.SECONDS.toMillis(1);
 
+        private ScheduledExecutorService scheduledExecutorService;
         private long tickTime;
         private int batchConsumerSize;
         private BlockingQueue<E> queue;
         private Consumer<List<E>> consumer;
         private BiConsumer<Throwable, List<E>> exceptionHandler;
+
+        public Builder<E>
+                setScheduleExecutorService(ScheduledExecutorService scheduledExecutorService) {
+            this.scheduledExecutorService = scheduledExecutorService;
+            return this;
+        }
 
         public Builder<E> tickTime(long time, TimeUnit unit) {
             this.tickTime = unit.toMillis(time);
@@ -166,7 +168,7 @@ public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
         public BatchConsumeBlockingQueueTrigger<E> build() {
             ensure();
             return new BatchConsumeBlockingQueueTrigger<>(batchConsumerSize, queue,
-                    exceptionHandler, consumer, tickTime);
+                    exceptionHandler, consumer, scheduledExecutorService, tickTime);
         }
 
         private void ensure() {
@@ -179,6 +181,17 @@ public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
             if (queue == null) {
                 queue = new LinkedBlockingQueue<>();
             }
+            if (scheduledExecutorService == null) {
+                scheduledExecutorService = makeScheduleExecutor();
+            }
+        }
+
+        private ScheduledExecutorService makeScheduleExecutor() {
+            ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(1,
+                    new ThreadFactoryBuilder()
+                            .setNameFormat("pool-batch-consume-blocking-queue-thread-%d").build());
+
+            return scheduledExecutorService;
         }
     }
 

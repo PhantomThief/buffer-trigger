@@ -73,14 +73,6 @@ public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
         }
     }
 
-    /* (non-Javadoc)
-     * @see com.github.phantomthief.collection.BufferTrigger#enqueue(java.lang.Object, long)
-     */
-    @Override
-    public void enqueue(E element, long weight) {
-        throw new UnsupportedOperationException();
-    }
-
     public int getPendingCount() {
         return queue.size();
     }

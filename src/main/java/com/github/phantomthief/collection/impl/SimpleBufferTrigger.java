@@ -92,7 +92,7 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
     }
 
     @Override
-    public void enqueue(E element, long weight) {
+    public void enqueue(E element) {
         if (maxBufferCount > 0 && counter.get() >= maxBufferCount) {
             if (rejectHandler != null) {
                 rejectHandler.accept(element);
@@ -102,7 +102,7 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
         Object thisBuffer = buffer.updateAndGet(old -> old != null ? old : bufferFactory.get());
         boolean addSuccess = queueAdder.test(thisBuffer, element);
         if (addSuccess) {
-            counter.addAndGet(weight);
+            counter.incrementAndGet();
         }
 
     }

@@ -31,9 +31,10 @@ public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
     private final BiConsumer<Throwable, List<E>> exceptionHandler;
     private final ScheduledExecutorService scheduledExecutorService;
 
-    private BatchConsumeBlockingQueueTrigger(int batchConsumerSize, BlockingQueue<E> queue,
-            BiConsumer<Throwable, List<E>> exceptionHandler, Consumer<List<E>> consumer,
-            ScheduledExecutorService scheduledExecutorService, long tickTime) {
+    private BatchConsumeBlockingQueueTrigger(boolean forceConsumeEveryTick, int batchConsumerSize,
+            BlockingQueue<E> queue, BiConsumer<Throwable, List<E>> exceptionHandler,
+            Consumer<List<E>> consumer, ScheduledExecutorService scheduledExecutorService,
+            long tickTime) {
         this.batchConsumerSize = batchConsumerSize;
         this.queue = queue;
         this.consumer = consumer;
@@ -41,8 +42,10 @@ public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
         this.scheduledExecutorService = scheduledExecutorService;
         this.scheduledExecutorService.scheduleWithFixedDelay(() -> {
             synchronized (BatchConsumeBlockingQueueTrigger.this) {
-                while (queue.size() >= batchConsumerSize) {
-                    List<E> toConsumerData = new ArrayList<>(batchConsumerSize);
+                while (queue.size() >= batchConsumerSize
+                        || (forceConsumeEveryTick && !queue.isEmpty())) {
+                    List<E> toConsumerData = new ArrayList<>(
+                            Math.min(batchConsumerSize, queue.size()));
                     queue.drainTo(toConsumerData, batchConsumerSize);
                     if (!toConsumerData.isEmpty()) {
                         try {
@@ -112,10 +115,16 @@ public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
 
         private ScheduledExecutorService scheduledExecutorService;
         private long tickTime;
+        private boolean forceConsumeEveryTick;
         private int batchConsumerSize;
         private BlockingQueue<E> queue;
         private Consumer<List<E>> consumer;
         private BiConsumer<Throwable, List<E>> exceptionHandler;
+
+        public Builder<E> forceConsumeEveryTick() {
+            this.forceConsumeEveryTick = true;
+            return this;
+        }
 
         public Builder<E>
                 setScheduleExecutorService(ScheduledExecutorService scheduledExecutorService) {
@@ -159,8 +168,8 @@ public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
 
         public BatchConsumeBlockingQueueTrigger<E> build() {
             ensure();
-            return new BatchConsumeBlockingQueueTrigger<>(batchConsumerSize, queue,
-                    exceptionHandler, consumer, scheduledExecutorService, tickTime);
+            return new BatchConsumeBlockingQueueTrigger<>(forceConsumeEveryTick, batchConsumerSize,
+                    queue, exceptionHandler, consumer, scheduledExecutorService, tickTime);
         }
 
         private void ensure() {

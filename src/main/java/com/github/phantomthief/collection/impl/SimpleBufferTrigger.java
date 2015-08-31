@@ -22,6 +22,7 @@ import java.util.function.Supplier;
 
 import com.github.phantomthief.collection.BufferTrigger;
 import com.github.phantomthief.collection.ThrowingConsumer;
+import com.google.common.base.Preconditions;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 /**
@@ -153,9 +154,9 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
          * @return
          */
         public Builder<E, C> setContainer(Supplier<C> factory, BiPredicate<C, E> queueAdder) {
-            if (factory == null || queueAdder == null) {
-                throw new IllegalArgumentException();
-            }
+            Preconditions.checkNotNull(factory);
+            Preconditions.checkNotNull(queueAdder);
+
             this.bufferFactory = factory;
             this.queueAdder = queueAdder;
             return this;
@@ -212,9 +213,8 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
 
         @SuppressWarnings("unchecked")
         private void ensure() {
-            if (consumer == null) {
-                throw new IllegalArgumentException("there is no consumer defined.");
-            }
+            Preconditions.checkNotNull(consumer);
+
             if (bufferFactory == null) {
                 bufferFactory = () -> (C) Collections.synchronizedSet(new HashSet<>());
             }

@@ -16,6 +16,7 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 import com.github.phantomthief.collection.BufferTrigger;
+import com.google.common.base.Preconditions;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 /**
@@ -173,9 +174,7 @@ public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
         }
 
         private void ensure() {
-            if (consumer == null) {
-                throw new IllegalArgumentException("no consumer found.");
-            }
+            Preconditions.checkNotNull(consumer);
             if (tickTime <= 0) {
                 tickTime = DEFAULT_TICK_TIME;
             }

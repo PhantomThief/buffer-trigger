@@ -48,9 +48,7 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
     private final Supplier<Object> bufferFactory;
     private final BiConsumer<Throwable, Object> exceptionHandler;
     private final AtomicReference<Object> buffer = new AtomicReference<>();
-    @Deprecated
     private final long maxBufferCount;
-    @Deprecated
     private final Consumer<E> rejectHandler;
 
     private SimpleBufferTrigger(Supplier<Object> bufferFactory, BiPredicate<Object, E> queueAdder,
@@ -186,7 +184,6 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
         /**
          * it's better dealing this in container
          */
-        @Deprecated
         public Builder<E, C> maxBufferCount(long count) {
             this.maxBufferCount = count;
             return this;
@@ -195,7 +192,6 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
         /**
          * it's better dealing this in container
          */
-        @Deprecated
         public Builder<E, C> rejectHandler(Consumer<E> rejectHandler) {
             this.rejectHandler = rejectHandler;
             return this;

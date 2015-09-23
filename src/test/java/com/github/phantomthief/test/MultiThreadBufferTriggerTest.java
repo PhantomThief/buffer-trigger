@@ -99,7 +99,6 @@ public class MultiThreadBufferTriggerTest {
     }
 
     @Test
-    @SuppressWarnings("deprecation")
     public void test4() throws InterruptedException {
         BufferTrigger<String> buffer = SimpleBufferTrigger.<String, Set<String>> newBuilder() //
                 .on(1, TimeUnit.SECONDS, 1) //

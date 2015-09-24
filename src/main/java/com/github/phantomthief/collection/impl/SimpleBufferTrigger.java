@@ -18,6 +18,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import java.util.function.BiPredicate;
 import java.util.function.Consumer;
+import java.util.function.LongConsumer;
 import java.util.function.Supplier;
 
 import com.github.phantomthief.collection.BufferTrigger;
@@ -49,18 +50,23 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
     private final BiConsumer<Throwable, Object> exceptionHandler;
     private final AtomicReference<Object> buffer = new AtomicReference<>();
     private final long maxBufferCount;
+    private final long warningBufferThreshold;
+    private final LongConsumer warningBufferHandler;
     private final Consumer<E> rejectHandler;
 
     private SimpleBufferTrigger(Supplier<Object> bufferFactory, BiPredicate<Object, E> queueAdder,
             ScheduledExecutorService scheduledExecutorService, ThrowingConsumer<Object> consumer,
             Map<Long, Long> triggerMap, BiConsumer<Throwable, Object> exceptionHandler,
-            long maxBufferCount, Consumer<E> rejectHandler) {
+            long maxBufferCount, Consumer<E> rejectHandler, long warningBufferThreshold,
+            LongConsumer warningBufferHandler) {
         this.queueAdder = queueAdder;
         this.bufferFactory = bufferFactory;
         this.consumer = consumer;
         this.exceptionHandler = exceptionHandler;
         this.maxBufferCount = maxBufferCount;
         this.rejectHandler = rejectHandler;
+        this.warningBufferHandler = warningBufferHandler;
+        this.warningBufferThreshold = warningBufferThreshold;
         for (Entry<Long, Long> entry : triggerMap.entrySet()) {
             scheduledExecutorService.scheduleWithFixedDelay(() -> {
                 synchronized (SimpleBufferTrigger.this) {
@@ -92,7 +98,13 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
 
     @Override
     public void enqueue(E element) {
-        if (maxBufferCount > 0 && counter.get() >= maxBufferCount) {
+        long currentCount = counter.get();
+        if (warningBufferThreshold > 0 && maxBufferCount > 0 && warningBufferHandler != null) {
+            if (warningBufferThreshold >= currentCount) {
+                warningBufferHandler.accept(currentCount);
+            }
+        }
+        if (maxBufferCount > 0 && currentCount >= maxBufferCount) {
             if (rejectHandler != null) {
                 rejectHandler.accept(element);
             }
@@ -142,6 +154,8 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
         private BiConsumer<Throwable, C> exceptionHandler;
         private long maxBufferCount = -1;
         private Consumer<E> rejectHandler;
+        private long warningBufferThreshold;
+        private LongConsumer warningBufferHandler;
         private final Map<Long, Long> triggerMap = new HashMap<>();
 
         /**
@@ -177,6 +191,7 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
         }
 
         public Builder<E, C> consumer(ThrowingConsumer<C> consumer) {
+            Preconditions.checkNotNull(consumer);
             this.consumer = consumer;
             return this;
         }
@@ -185,6 +200,7 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
          * it's better dealing this in container
          */
         public Builder<E, C> maxBufferCount(long count) {
+            Preconditions.checkArgument(count > 0);
             this.maxBufferCount = count;
             return this;
         }
@@ -192,8 +208,24 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
         /**
          * it's better dealing this in container
          */
+        public Builder<E, C> maxBufferCount(long count, Consumer<E> rejectHandler) {
+            return maxBufferCount(count).rejectHandler(rejectHandler);
+        }
+
+        /**
+         * it's better dealing this in container
+         */
         public Builder<E, C> rejectHandler(Consumer<E> rejectHandler) {
+            Preconditions.checkNotNull(rejectHandler);
             this.rejectHandler = rejectHandler;
+            return this;
+        }
+
+        public Builder<E, C> warningThreshold(long threshold, LongConsumer handler) {
+            Preconditions.checkNotNull(handler);
+            Preconditions.checkArgument(threshold > 0);
+            this.warningBufferHandler = handler;
+            this.warningBufferThreshold = threshold;
             return this;
         }
 
@@ -203,8 +235,8 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
             return new SimpleBufferTrigger<E>((Supplier<Object>) bufferFactory,
                     (BiPredicate<Object, E>) queueAdder, scheduledExecutorService,
                     (ThrowingConsumer<Object>) consumer, triggerMap,
-                    (BiConsumer<Throwable, Object>) exceptionHandler, maxBufferCount,
-                    rejectHandler);
+                    (BiConsumer<Throwable, Object>) exceptionHandler, maxBufferCount, rejectHandler,
+                    warningBufferThreshold, warningBufferHandler);
         }
 
         @SuppressWarnings("unchecked")
@@ -219,6 +251,15 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
             }
             if (!triggerMap.isEmpty() && scheduledExecutorService == null) {
                 scheduledExecutorService = makeScheduleExecutor();
+            }
+            if (maxBufferCount > 0 && warningBufferThreshold > 0) {
+                if (warningBufferThreshold >= maxBufferCount) {
+                    logger.warn(
+                            "invalid warning threshold:{}, it shouldn't be larger than maxBufferSize. ignore warning threshold.",
+                            warningBufferThreshold);
+                    warningBufferThreshold = 0;
+                    warningBufferHandler = null;
+                }
             }
         }
 

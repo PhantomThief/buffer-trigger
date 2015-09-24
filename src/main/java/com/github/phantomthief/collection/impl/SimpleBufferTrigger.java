@@ -100,7 +100,7 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
     public void enqueue(E element) {
         long currentCount = counter.get();
         if (warningBufferThreshold > 0 && maxBufferCount > 0 && warningBufferHandler != null) {
-            if (warningBufferThreshold >= currentCount) {
+            if (currentCount >= warningBufferThreshold) {
                 warningBufferHandler.accept(currentCount);
             }
         }

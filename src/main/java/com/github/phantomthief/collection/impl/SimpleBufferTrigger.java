@@ -3,6 +3,10 @@
  */
 package com.github.phantomthief.collection.impl;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -23,7 +27,6 @@ import java.util.function.Supplier;
 
 import com.github.phantomthief.collection.BufferTrigger;
 import com.github.phantomthief.collection.ThrowingConsumer;
-import com.google.common.base.Preconditions;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 /**
@@ -92,7 +95,7 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
                         }
                     }
                 }
-            } , entry.getKey(), entry.getKey(), TimeUnit.MILLISECONDS);
+            } , entry.getKey(), entry.getKey(), MILLISECONDS);
         }
     }
 
@@ -166,8 +169,8 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
          * @return
          */
         public Builder<E, C> setContainer(Supplier<C> factory, BiPredicate<C, E> queueAdder) {
-            Preconditions.checkNotNull(factory);
-            Preconditions.checkNotNull(queueAdder);
+            checkNotNull(factory);
+            checkNotNull(queueAdder);
 
             this.bufferFactory = factory;
             this.queueAdder = queueAdder;
@@ -191,7 +194,7 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
         }
 
         public Builder<E, C> consumer(ThrowingConsumer<C> consumer) {
-            Preconditions.checkNotNull(consumer);
+            checkNotNull(consumer);
             this.consumer = consumer;
             return this;
         }
@@ -200,7 +203,8 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
          * it's better dealing this in container
          */
         public Builder<E, C> maxBufferCount(long count) {
-            Preconditions.checkArgument(count > 0);
+            checkArgument(count > 0);
+
             this.maxBufferCount = count;
             return this;
         }
@@ -216,14 +220,16 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
          * it's better dealing this in container
          */
         public Builder<E, C> rejectHandler(Consumer<E> rejectHandler) {
-            Preconditions.checkNotNull(rejectHandler);
+            checkNotNull(rejectHandler);
+
             this.rejectHandler = rejectHandler;
             return this;
         }
 
         public Builder<E, C> warningThreshold(long threshold, LongConsumer handler) {
-            Preconditions.checkNotNull(handler);
-            Preconditions.checkArgument(threshold > 0);
+            checkNotNull(handler);
+            checkArgument(threshold > 0);
+
             this.warningBufferHandler = handler;
             this.warningBufferThreshold = threshold;
             return this;
@@ -241,7 +247,7 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
 
         @SuppressWarnings("unchecked")
         private void ensure() {
-            Preconditions.checkNotNull(consumer);
+            checkNotNull(consumer);
 
             if (bufferFactory == null) {
                 bufferFactory = () -> (C) Collections.synchronizedSet(new HashSet<>());

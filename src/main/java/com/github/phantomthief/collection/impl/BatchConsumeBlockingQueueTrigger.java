@@ -3,6 +3,10 @@
  */
 package com.github.phantomthief.collection.impl;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.SECONDS;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -16,7 +20,6 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 import com.github.phantomthief.collection.BufferTrigger;
-import com.google.common.base.Preconditions;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 /**
@@ -65,7 +68,7 @@ public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
                     }
                 }
             }
-        } , tickTime, tickTime, TimeUnit.MILLISECONDS);
+        } , tickTime, tickTime, MILLISECONDS);
     }
 
     @Override
@@ -112,7 +115,7 @@ public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
     public static class Builder<E> {
 
         private static final int ARRAY_LIST_THRESHOLD = 1000;
-        private static final long DEFAULT_TICK_TIME = TimeUnit.SECONDS.toMillis(1);
+        private static final long DEFAULT_TICK_TIME = SECONDS.toMillis(1);
 
         private ScheduledExecutorService scheduledExecutorService;
         private long tickTime;
@@ -174,7 +177,8 @@ public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
         }
 
         private void ensure() {
-            Preconditions.checkNotNull(consumer);
+            checkNotNull(consumer);
+
             if (tickTime <= 0) {
                 tickTime = DEFAULT_TICK_TIME;
             }

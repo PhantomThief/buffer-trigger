@@ -80,10 +80,6 @@ public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
         }
     }
 
-    public int getPendingCount() {
-        return queue.size();
-    }
-
     /* (non-Javadoc)
      * @see com.github.phantomthief.collection.BufferTrigger#manuallyDoTrigger()
      */
@@ -110,6 +106,14 @@ public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
                 }
             }
         }
+    }
+
+    /* (non-Javadoc)
+     * @see com.github.phantomthief.collection.BufferTrigger#getPendingChanges()
+     */
+    @Override
+    public long getPendingChanges() {
+        return queue.size();
     }
 
     public static class Builder<E> {
@@ -170,7 +174,7 @@ public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
             return this;
         }
 
-        public BatchConsumeBlockingQueueTrigger<E> build() {
+        public BufferTrigger<E> build() {
             ensure();
             return new BatchConsumeBlockingQueueTrigger<>(forceConsumeEveryTick, batchConsumerSize,
                     queue, exceptionHandler, consumer, scheduledExecutorService, tickTime);

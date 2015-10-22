@@ -11,4 +11,6 @@ public interface BufferTrigger<E> {
     public void enqueue(E element);
 
     public void manuallyDoTrigger();
+
+    public long getPendingChanges();
 }

@@ -148,6 +148,14 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
         }
     }
 
+    /* (non-Javadoc)
+     * @see com.github.phantomthief.collection.BufferTrigger#getPendingChanges()
+     */
+    @Override
+    public long getPendingChanges() {
+        return counter.get();
+    }
+
     public static class Builder<E, C> {
 
         private ScheduledExecutorService scheduledExecutorService;
@@ -236,7 +244,7 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
         }
 
         @SuppressWarnings("unchecked")
-        public SimpleBufferTrigger<E> build() {
+        public BufferTrigger<E> build() {
             ensure();
             return new SimpleBufferTrigger<E>((Supplier<Object>) bufferFactory,
                     (BiPredicate<Object, E>) queueAdder, scheduledExecutorService,

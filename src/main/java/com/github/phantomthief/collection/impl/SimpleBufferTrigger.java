@@ -178,7 +178,7 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
          * @return
          */
         public <E1, C1> Builder<E1, C1> setContainer(Supplier<? extends C1> factory,
-                BiPredicate<? extends C1, ? extends E1> queueAdder) {
+                BiPredicate<? super C1, ? super E1> queueAdder) {
             checkNotNull(factory);
             checkNotNull(queueAdder);
 
@@ -195,7 +195,7 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
         }
 
         public <E1, C1> Builder<E1, C1>
-                setExceptionHandler(BiConsumer<? extends Throwable, ? super C1> exceptionHandler) {
+                setExceptionHandler(BiConsumer<? super Throwable, ? super C1> exceptionHandler) {
             Builder<E1, C1> thisBuilder = (Builder<E1, C1>) this;
             thisBuilder.exceptionHandler = (BiConsumer<Throwable, C1>) exceptionHandler;
             return thisBuilder;

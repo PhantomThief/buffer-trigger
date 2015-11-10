@@ -116,7 +116,8 @@ public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
         return queue.size();
     }
 
-    public static class Builder<E> {
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    public static final class Builder<E> {
 
         private static final int ARRAY_LIST_THRESHOLD = 1000;
         private static final long DEFAULT_TICK_TIME = SECONDS.toMillis(1);
@@ -150,19 +151,23 @@ public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
             return this;
         }
 
-        public Builder<E> setQueue(BlockingQueue<E> queue) {
-            this.queue = queue;
-            return this;
+        public <E1> Builder<E1> setQueue(BlockingQueue<? extends E> queue) {
+            Builder<E1> thisBuilder = (Builder<E1>) this;
+            thisBuilder.queue = (BlockingQueue<E1>) queue;
+            return thisBuilder;
         }
 
-        public Builder<E> setConsumer(Consumer<List<E>> consumer) {
-            this.consumer = consumer;
-            return this;
+        public <E1> Builder<E1> setConsumer(Consumer<? super List<E1>> consumer) {
+            Builder<E1> thisBuilder = (Builder<E1>) this;
+            thisBuilder.consumer = (Consumer) consumer;
+            return thisBuilder;
         }
 
-        public Builder<E> setExceptionHandler(BiConsumer<Throwable, List<E>> exceptionHandler) {
-            this.exceptionHandler = exceptionHandler;
-            return this;
+        public <E1> Builder<E1> setExceptionHandler(
+                BiConsumer<? super Throwable, ? super List<E1>> exceptionHandler) {
+            Builder<E1> thisBuilder = (Builder<E1>) this;
+            thisBuilder.exceptionHandler = (BiConsumer) exceptionHandler;
+            return thisBuilder;
         }
 
         public Builder<E> queueCapacity(int capacity) {
@@ -174,9 +179,9 @@ public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
             return this;
         }
 
-        public BufferTrigger<E> build() {
+        public <E1> BufferTrigger<E1> build() {
             ensure();
-            return new BatchConsumeBlockingQueueTrigger<>(forceConsumeEveryTick, batchConsumerSize,
+            return new BatchConsumeBlockingQueueTrigger(forceConsumeEveryTick, batchConsumerSize,
                     queue, exceptionHandler, consumer, scheduledExecutorService, tickTime);
         }
 
@@ -203,7 +208,7 @@ public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
         }
     }
 
-    public static <E> Builder<E> newBuilder() {
+    public static Builder<Object> newBuilder() {
         return new Builder<>();
     }
 }

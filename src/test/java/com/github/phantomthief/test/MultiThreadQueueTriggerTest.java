@@ -23,7 +23,7 @@ public class MultiThreadQueueTriggerTest {
 
     @Test
     public void test() throws InterruptedException {
-        BufferTrigger<String> buffer = BatchConsumeBlockingQueueTrigger.<String> newBuilder() //
+        BufferTrigger<String> buffer = BatchConsumeBlockingQueueTrigger.newBuilder() //
                 .batchConsumerSize(3) //
                 .setConsumer(this::delay) //
                 .queueCapacity(5) //
@@ -40,7 +40,7 @@ public class MultiThreadQueueTriggerTest {
         Thread.sleep(TimeUnit.SECONDS.toMillis(1));
 
         buffer.manuallyDoTrigger();
-        assert(dealed.equals(allData));
+        assert (dealed.equals(allData));
     }
 
     private final void delay(Collection<String> obj) {

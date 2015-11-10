@@ -25,7 +25,7 @@ public class MultiThreadBufferTriggerTest {
 
     @Test
     public void test() throws InterruptedException {
-        BufferTrigger<String> buffer = SimpleBufferTrigger.<String, Set<String>> newBuilder() //
+        BufferTrigger<String> buffer = SimpleBufferTrigger.newBuilder() //
                 .on(3, TimeUnit.SECONDS, 1) //
                 .on(2, TimeUnit.SECONDS, 10) //
                 .on(1, TimeUnit.SECONDS, 10000) //
@@ -54,12 +54,12 @@ public class MultiThreadBufferTriggerTest {
         }
 
         buffer.manuallyDoTrigger();
-        assert(dealed.equals(allData));
+        assert (dealed.equals(allData));
     }
 
     @Test
     public void test2() throws InterruptedException {
-        BufferTrigger<String> buffer = SimpleBufferTrigger.<String, Set<String>> newBuilder() //
+        BufferTrigger<String> buffer = SimpleBufferTrigger.newBuilder() //
                 .on(3, TimeUnit.SECONDS, 1) //
                 .on(2, TimeUnit.SECONDS, 10) //
                 .on(1, TimeUnit.SECONDS, 10000) //
@@ -80,7 +80,7 @@ public class MultiThreadBufferTriggerTest {
 
     @Test
     public void test3() throws InterruptedException {
-        BufferTrigger<String> buffer = SimpleBufferTrigger.<String, Set<String>> newBuilder() //
+        BufferTrigger<String> buffer = SimpleBufferTrigger.newBuilder() //
                 .on(1, TimeUnit.SECONDS, 1) //
                 .on(2, TimeUnit.SECONDS, 2) //
                 .consumer(this::delay) //
@@ -100,7 +100,7 @@ public class MultiThreadBufferTriggerTest {
 
     @Test
     public void test4() throws InterruptedException {
-        BufferTrigger<String> buffer = SimpleBufferTrigger.<String, Set<String>> newBuilder() //
+        BufferTrigger<String> buffer = SimpleBufferTrigger.newBuilder() //
                 .on(1, TimeUnit.SECONDS, 1) //
                 .maxBufferCount(2) //
                 .rejectHandler(e -> System.out.println("reject:" + e)) //

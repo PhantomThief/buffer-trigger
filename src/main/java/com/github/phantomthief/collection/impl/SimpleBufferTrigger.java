@@ -156,6 +156,7 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
         return counter.get();
     }
 
+    @SuppressWarnings("unchecked")
     public static class Builder<E, C> {
 
         private ScheduledExecutorService scheduledExecutorService;
@@ -176,13 +177,15 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
          * @param queueAdder
          * @return
          */
-        public Builder<E, C> setContainer(Supplier<C> factory, BiPredicate<C, E> queueAdder) {
+        public <E1, C1> Builder<E1, C1> setContainer(Supplier<? extends C1> factory,
+                BiPredicate<? extends C1, ? extends E1> queueAdder) {
             checkNotNull(factory);
             checkNotNull(queueAdder);
 
-            this.bufferFactory = factory;
-            this.queueAdder = queueAdder;
-            return this;
+            Builder<E1, C1> thisBuilder = (Builder<E1, C1>) this;
+            thisBuilder.bufferFactory = (Supplier<C1>) factory;
+            thisBuilder.queueAdder = (BiPredicate<C1, E1>) queueAdder;
+            return thisBuilder;
         }
 
         public Builder<E, C>
@@ -191,9 +194,11 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
             return this;
         }
 
-        public Builder<E, C> setExceptionHandler(BiConsumer<Throwable, C> exceptionHandler) {
-            this.exceptionHandler = exceptionHandler;
-            return this;
+        public <E1, C1> Builder<E1, C1>
+                setExceptionHandler(BiConsumer<? extends Throwable, ? super C1> exceptionHandler) {
+            Builder<E1, C1> thisBuilder = (Builder<E1, C1>) this;
+            thisBuilder.exceptionHandler = (BiConsumer<Throwable, C1>) exceptionHandler;
+            return thisBuilder;
         }
 
         public Builder<E, C> on(long interval, TimeUnit unit, long count) {
@@ -201,10 +206,11 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
             return this;
         }
 
-        public Builder<E, C> consumer(ThrowingConsumer<C> consumer) {
+        public <E1, C1> Builder<E1, C1> consumer(ThrowingConsumer<? super C1> consumer) {
             checkNotNull(consumer);
-            this.consumer = consumer;
-            return this;
+            Builder<E1, C1> thisBuilder = (Builder<E1, C1>) this;
+            thisBuilder.consumer = (ThrowingConsumer<C1>) consumer;
+            return thisBuilder;
         }
 
         /**
@@ -220,18 +226,19 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
         /**
          * it's better dealing this in container
          */
-        public Builder<E, C> maxBufferCount(long count, Consumer<E> rejectHandler) {
-            return maxBufferCount(count).rejectHandler(rejectHandler);
+        public <E1, C1> Builder<E1, C1> maxBufferCount(long count,
+                Consumer<? super E1> rejectHandler) {
+            return (Builder<E1, C1>) maxBufferCount(count).rejectHandler(rejectHandler);
         }
 
         /**
          * it's better dealing this in container
          */
-        public Builder<E, C> rejectHandler(Consumer<E> rejectHandler) {
+        public <E1, C1> Builder<E1, C1> rejectHandler(Consumer<? super E1> rejectHandler) {
             checkNotNull(rejectHandler);
-
-            this.rejectHandler = rejectHandler;
-            return this;
+            Builder<E1, C1> thisBuilder = (Builder<E1, C1>) this;
+            thisBuilder.rejectHandler = (Consumer<E1>) rejectHandler;
+            return thisBuilder;
         }
 
         public Builder<E, C> warningThreshold(long threshold, LongConsumer handler) {
@@ -243,17 +250,15 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
             return this;
         }
 
-        @SuppressWarnings("unchecked")
-        public BufferTrigger<E> build() {
+        public <E1> BufferTrigger<E1> build() {
             ensure();
-            return new SimpleBufferTrigger<E>((Supplier<Object>) bufferFactory,
-                    (BiPredicate<Object, E>) queueAdder, scheduledExecutorService,
+            return new SimpleBufferTrigger<E1>((Supplier<Object>) bufferFactory,
+                    (BiPredicate<Object, E1>) queueAdder, scheduledExecutorService,
                     (ThrowingConsumer<Object>) consumer, triggerMap,
-                    (BiConsumer<Throwable, Object>) exceptionHandler, maxBufferCount, rejectHandler,
-                    warningBufferThreshold, warningBufferHandler);
+                    (BiConsumer<Throwable, Object>) exceptionHandler, maxBufferCount,
+                    (Consumer<E1>) rejectHandler, warningBufferThreshold, warningBufferHandler);
         }
 
-        @SuppressWarnings("unchecked")
         private void ensure() {
             checkNotNull(consumer);
 
@@ -286,12 +291,12 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
         }
     }
 
-    public static final <E, C> Builder<E, C> newBuilder() {
+    public static Builder<Object, Object> newBuilder() {
         return new Builder<>();
     }
 
-    public static final <E> Builder<E, Map<E, Integer>> newCounterBuilder() {
-        return new Builder<E, Map<E, Integer>>() //
+    public static Builder<Object, Map<Object, Integer>> newCounterBuilder() {
+        return new Builder<Object, Map<Object, Integer>>() //
                 .setContainer(ConcurrentHashMap::new, (map, element) -> {
                     map.merge(element, 1,
                             (oldValue, appendValue) -> oldValue == null ? appendValue : oldValue

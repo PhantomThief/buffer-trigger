@@ -203,7 +203,7 @@ public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
         }
     }
 
-    public static final <E> Builder<E> newBuilder() {
+    public static <E> Builder<E> newBuilder() {
         return new Builder<>();
     }
 }

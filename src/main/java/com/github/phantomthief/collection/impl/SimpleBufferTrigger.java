@@ -88,14 +88,15 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
                             try {
                                 this.exceptionHandler.accept(e, old);
                             } catch (Throwable idontcare) {
-                                // do nothing
+                                e.printStackTrace();
+                                idontcare.printStackTrace();
                             }
                         } else {
                             logger.error("Ops.", e);
                         }
                     }
                 }
-            } , entry.getKey(), entry.getKey(), MILLISECONDS);
+            }, entry.getKey(), entry.getKey(), MILLISECONDS);
         }
     }
 
@@ -139,7 +140,8 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
                     try {
                         this.exceptionHandler.accept(e, old);
                     } catch (Throwable idontcare) {
-                        // do nothing
+                        e.printStackTrace();
+                        idontcare.printStackTrace();
                     }
                 } else {
                     logger.error("Ops.", e);

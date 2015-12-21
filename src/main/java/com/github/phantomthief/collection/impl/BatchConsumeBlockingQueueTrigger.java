@@ -59,7 +59,8 @@ public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
                                 try {
                                     exceptionHandler.accept(e, toConsumerData);
                                 } catch (Throwable ex) {
-                                    // do nothing;
+                                    e.printStackTrace();
+                                    ex.printStackTrace();
                                 }
                             } else {
                                 logger.error("Ops.", e);
@@ -68,7 +69,7 @@ public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
                     }
                 }
             }
-        } , tickTime, tickTime, MILLISECONDS);
+        }, tickTime, tickTime, MILLISECONDS);
     }
 
     @Override
@@ -97,7 +98,8 @@ public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
                             try {
                                 exceptionHandler.accept(e, toConsumerData);
                             } catch (Throwable ex) {
-                                // do nothing;
+                                e.printStackTrace();
+                                ex.printStackTrace();
                             }
                         } else {
                             logger.error("Ops.", e);

@@ -26,7 +26,7 @@ import java.util.function.LongConsumer;
 import java.util.function.Supplier;
 
 import com.github.phantomthief.collection.BufferTrigger;
-import com.github.phantomthief.collection.ThrowingConsumer;
+import com.github.phantomthief.util.ThrowableConsumer;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 /**
@@ -47,7 +47,7 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
      */
 
     private final AtomicLong counter = new AtomicLong();
-    private final ThrowingConsumer<Object> consumer;
+    private final ThrowableConsumer<Object, Throwable> consumer;
     private final BiPredicate<Object, E> queueAdder;
     private final Supplier<Object> bufferFactory;
     private final BiConsumer<Throwable, Object> exceptionHandler;
@@ -58,9 +58,10 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
     private final Consumer<E> rejectHandler;
 
     private SimpleBufferTrigger(Supplier<Object> bufferFactory, BiPredicate<Object, E> queueAdder,
-            ScheduledExecutorService scheduledExecutorService, ThrowingConsumer<Object> consumer,
-            Map<Long, Long> triggerMap, BiConsumer<Throwable, Object> exceptionHandler,
-            long maxBufferCount, Consumer<E> rejectHandler, long warningBufferThreshold,
+            ScheduledExecutorService scheduledExecutorService,
+            ThrowableConsumer<Object, Throwable> consumer, Map<Long, Long> triggerMap,
+            BiConsumer<Throwable, Object> exceptionHandler, long maxBufferCount,
+            Consumer<E> rejectHandler, long warningBufferThreshold,
             LongConsumer warningBufferHandler) {
         this.queueAdder = queueAdder;
         this.bufferFactory = bufferFactory;
@@ -81,7 +82,7 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
                         old = buffer.getAndSet(bufferFactory.get());
                         counter.set(0);
                         if (old != null) {
-                            consumer.acceptThrows(old);
+                            consumer.accept(old);
                         }
                     } catch (Throwable e) {
                         if (this.exceptionHandler != null) {
@@ -164,7 +165,7 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
         private ScheduledExecutorService scheduledExecutorService;
         private Supplier<C> bufferFactory;
         private BiPredicate<C, E> queueAdder;
-        private ThrowingConsumer<C> consumer;
+        private ThrowableConsumer<C, Throwable> consumer;
         private BiConsumer<Throwable, C> exceptionHandler;
         private long maxBufferCount = -1;
         private Consumer<E> rejectHandler;
@@ -208,10 +209,11 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
             return this;
         }
 
-        public <E1, C1> Builder<E1, C1> consumer(ThrowingConsumer<? super C1> consumer) {
+        public <E1, C1> Builder<E1, C1>
+                consumer(ThrowableConsumer<? super C1, Throwable> consumer) {
             checkNotNull(consumer);
             Builder<E1, C1> thisBuilder = (Builder<E1, C1>) this;
-            thisBuilder.consumer = (ThrowingConsumer<C1>) consumer;
+            thisBuilder.consumer = (ThrowableConsumer<C1, Throwable>) consumer;
             return thisBuilder;
         }
 
@@ -253,12 +255,14 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
         }
 
         public <E1> BufferTrigger<E1> build() {
-            ensure();
-            return new SimpleBufferTrigger<E1>((Supplier<Object>) bufferFactory,
-                    (BiPredicate<Object, E1>) queueAdder, scheduledExecutorService,
-                    (ThrowingConsumer<Object>) consumer, triggerMap,
-                    (BiConsumer<Throwable, Object>) exceptionHandler, maxBufferCount,
-                    (Consumer<E1>) rejectHandler, warningBufferThreshold, warningBufferHandler);
+            return new LazyBufferTrigger<>(() -> {
+                ensure();
+                return new SimpleBufferTrigger<E1>((Supplier<Object>) bufferFactory,
+                        (BiPredicate<Object, E1>) queueAdder, scheduledExecutorService,
+                        (ThrowableConsumer<Object, Throwable>) consumer, triggerMap,
+                        (BiConsumer<Throwable, Object>) exceptionHandler, maxBufferCount,
+                        (Consumer<E1>) rejectHandler, warningBufferThreshold, warningBufferHandler);
+            });
         }
 
         private void ensure() {

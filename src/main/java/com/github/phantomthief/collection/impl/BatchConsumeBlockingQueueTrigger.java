@@ -182,9 +182,12 @@ public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
         }
 
         public <E1> BufferTrigger<E1> build() {
-            ensure();
-            return new BatchConsumeBlockingQueueTrigger(forceConsumeEveryTick, batchConsumerSize,
-                    queue, exceptionHandler, consumer, scheduledExecutorService, tickTime);
+            return (BufferTrigger<E1>) new LazyBufferTrigger<>(() -> {
+                ensure();
+                return new BatchConsumeBlockingQueueTrigger(forceConsumeEveryTick,
+                        batchConsumerSize, queue, exceptionHandler, consumer,
+                        scheduledExecutorService, tickTime);
+            });
         }
 
         private void ensure() {

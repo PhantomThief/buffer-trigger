@@ -290,8 +290,10 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
 
         private ScheduledExecutorService makeScheduleExecutor() {
             ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(
-                    Math.max(1, triggerMap.size()), new ThreadFactoryBuilder()
-                            .setNameFormat("pool-simple-buffer-trigger-thread-%d").build());
+                    Math.max(1, triggerMap.size()),
+                    new ThreadFactoryBuilder().setNameFormat("pool-simple-buffer-trigger-thread-%d") //
+                            .setDaemon(true) //
+                            .build());
 
             return scheduledExecutorService;
         }

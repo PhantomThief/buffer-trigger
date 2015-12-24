@@ -207,7 +207,9 @@ public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
         private ScheduledExecutorService makeScheduleExecutor() {
             ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(1,
                     new ThreadFactoryBuilder()
-                            .setNameFormat("pool-batch-consume-blocking-queue-thread-%d").build());
+                            .setNameFormat("pool-batch-consume-blocking-queue-thread-%d") //
+                            .setDaemon(true) //
+                            .build());
 
             return scheduledExecutorService;
         }

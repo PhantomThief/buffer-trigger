@@ -3,20 +3,12 @@
  */
 package com.github.phantomthief.collection.impl;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
@@ -27,15 +19,13 @@ import java.util.function.Supplier;
 
 import com.github.phantomthief.collection.BufferTrigger;
 import com.github.phantomthief.util.ThrowableConsumer;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 /**
  * @author w.vela
  */
 public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
 
-    private static org.slf4j.Logger logger = org.slf4j.LoggerFactory
-            .getLogger(SimpleBufferTrigger.class);
+    static org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(SimpleBufferTrigger.class);
 
     /**
      * trigger like redis's rdb
@@ -57,7 +47,7 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
     private final LongConsumer warningBufferHandler;
     private final Consumer<E> rejectHandler;
 
-    private SimpleBufferTrigger(Supplier<Object> bufferFactory, BiPredicate<Object, E> queueAdder,
+    SimpleBufferTrigger(Supplier<Object> bufferFactory, BiPredicate<Object, E> queueAdder,
             ScheduledExecutorService scheduledExecutorService,
             ThrowableConsumer<Object, Throwable> consumer, Map<Long, Long> triggerMap,
             BiConsumer<Throwable, Object> exceptionHandler, long maxBufferCount,
@@ -159,152 +149,16 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
         return counter.get();
     }
 
-    @SuppressWarnings("unchecked")
-    public static class Builder<E, C> {
-
-        private ScheduledExecutorService scheduledExecutorService;
-        private Supplier<C> bufferFactory;
-        private BiPredicate<C, E> queueAdder;
-        private ThrowableConsumer<C, Throwable> consumer;
-        private BiConsumer<Throwable, C> exceptionHandler;
-        private long maxBufferCount = -1;
-        private Consumer<E> rejectHandler;
-        private long warningBufferThreshold;
-        private LongConsumer warningBufferHandler;
-        private final Map<Long, Long> triggerMap = new HashMap<>();
-
-        /**
-         * <b>warning:</b> the container must be thread-safed.
-         * 
-         * @param factory
-         * @param queueAdder
-         * @return
-         */
-        public <E1, C1> Builder<E1, C1> setContainer(Supplier<? extends C1> factory,
-                BiPredicate<? super C1, ? super E1> queueAdder) {
-            checkNotNull(factory);
-            checkNotNull(queueAdder);
-
-            Builder<E1, C1> thisBuilder = (Builder<E1, C1>) this;
-            thisBuilder.bufferFactory = (Supplier<C1>) factory;
-            thisBuilder.queueAdder = (BiPredicate<C1, E1>) queueAdder;
-            return thisBuilder;
-        }
-
-        public Builder<E, C>
-                setScheduleExecutorService(ScheduledExecutorService scheduledExecutorService) {
-            this.scheduledExecutorService = scheduledExecutorService;
-            return this;
-        }
-
-        public <E1, C1> Builder<E1, C1>
-                setExceptionHandler(BiConsumer<? super Throwable, ? super C1> exceptionHandler) {
-            Builder<E1, C1> thisBuilder = (Builder<E1, C1>) this;
-            thisBuilder.exceptionHandler = (BiConsumer<Throwable, C1>) exceptionHandler;
-            return thisBuilder;
-        }
-
-        public Builder<E, C> on(long interval, TimeUnit unit, long count) {
-            triggerMap.put(unit.toMillis(interval), count);
-            return this;
-        }
-
-        public <E1, C1> Builder<E1, C1>
-                consumer(ThrowableConsumer<? super C1, Throwable> consumer) {
-            checkNotNull(consumer);
-            Builder<E1, C1> thisBuilder = (Builder<E1, C1>) this;
-            thisBuilder.consumer = (ThrowableConsumer<C1, Throwable>) consumer;
-            return thisBuilder;
-        }
-
-        /**
-         * it's better dealing this in container
-         */
-        public Builder<E, C> maxBufferCount(long count) {
-            checkArgument(count > 0);
-
-            this.maxBufferCount = count;
-            return this;
-        }
-
-        /**
-         * it's better dealing this in container
-         */
-        public <E1, C1> Builder<E1, C1> maxBufferCount(long count,
-                Consumer<? super E1> rejectHandler) {
-            return (Builder<E1, C1>) maxBufferCount(count).rejectHandler(rejectHandler);
-        }
-
-        /**
-         * it's better dealing this in container
-         */
-        public <E1, C1> Builder<E1, C1> rejectHandler(Consumer<? super E1> rejectHandler) {
-            checkNotNull(rejectHandler);
-            Builder<E1, C1> thisBuilder = (Builder<E1, C1>) this;
-            thisBuilder.rejectHandler = (Consumer<E1>) rejectHandler;
-            return thisBuilder;
-        }
-
-        public Builder<E, C> warningThreshold(long threshold, LongConsumer handler) {
-            checkNotNull(handler);
-            checkArgument(threshold > 0);
-
-            this.warningBufferHandler = handler;
-            this.warningBufferThreshold = threshold;
-            return this;
-        }
-
-        public <E1> BufferTrigger<E1> build() {
-            return new LazyBufferTrigger<>(() -> {
-                ensure();
-                return new SimpleBufferTrigger<E1>((Supplier<Object>) bufferFactory,
-                        (BiPredicate<Object, E1>) queueAdder, scheduledExecutorService,
-                        (ThrowableConsumer<Object, Throwable>) consumer, triggerMap,
-                        (BiConsumer<Throwable, Object>) exceptionHandler, maxBufferCount,
-                        (Consumer<E1>) rejectHandler, warningBufferThreshold, warningBufferHandler);
-            });
-        }
-
-        private void ensure() {
-            checkNotNull(consumer);
-
-            if (bufferFactory == null) {
-                bufferFactory = () -> (C) Collections.synchronizedSet(new HashSet<>());
-            }
-            if (queueAdder == null) {
-                queueAdder = (c, e) -> ((Set<E>) c).add(e);
-            }
-            if (!triggerMap.isEmpty() && scheduledExecutorService == null) {
-                scheduledExecutorService = makeScheduleExecutor();
-            }
-            if (maxBufferCount > 0 && warningBufferThreshold > 0) {
-                if (warningBufferThreshold >= maxBufferCount) {
-                    logger.warn(
-                            "invalid warning threshold:{}, it shouldn't be larger than maxBufferSize. ignore warning threshold.",
-                            warningBufferThreshold);
-                    warningBufferThreshold = 0;
-                    warningBufferHandler = null;
-                }
-            }
-        }
-
-        private ScheduledExecutorService makeScheduleExecutor() {
-            ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(
-                    Math.max(1, triggerMap.size()),
-                    new ThreadFactoryBuilder().setNameFormat("pool-simple-buffer-trigger-thread-%d") //
-                            .setDaemon(true) //
-                            .build());
-
-            return scheduledExecutorService;
-        }
+    public static SimpleBufferTriggerBuilder<Object, Object> newBuilder() {
+        return new SimpleBufferTriggerBuilder<>();
     }
 
-    public static Builder<Object, Object> newBuilder() {
-        return new Builder<>();
+    public static <E, C> GenericSimpleBufferTriggerBuilder<E, C> newGenericBuilder() {
+        return new GenericSimpleBufferTriggerBuilder<>(newBuilder());
     }
 
-    public static Builder<Object, Map<Object, Integer>> newCounterBuilder() {
-        return new Builder<Object, Map<Object, Integer>>() //
+    public static SimpleBufferTriggerBuilder<Object, Map<Object, Integer>> newCounterBuilder() {
+        return new SimpleBufferTriggerBuilder<Object, Map<Object, Integer>>() //
                 .setContainer(ConcurrentHashMap::new, (map, element) -> {
                     map.merge(element, 1,
                             (oldValue, appendValue) -> oldValue == null ? appendValue : oldValue

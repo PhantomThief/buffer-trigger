@@ -114,11 +114,11 @@ public class MultiThreadBufferTriggerTest {
         buffer.manuallyDoTrigger();
     }
 
-    private final void exception(Set<String> obj) {
+    private void exception(Set<String> obj) {
         throw new RuntimeException();
     }
 
-    private final void delay(Collection<String> obj) {
+    private void delay(Collection<String> obj) {
         try {
             System.out.println("delayed:" + obj);
             Thread.sleep(TimeUnit.SECONDS.toMillis(2));
@@ -127,10 +127,9 @@ public class MultiThreadBufferTriggerTest {
         }
     }
 
-    private final void out(Set<String> obj) {
-        System.out.println(
-                new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(System.currentTimeMillis())
-                        + "\t" + obj);
+    private void out(Set<String> obj) {
+        System.out.println(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(System
+                .currentTimeMillis()) + "\t" + obj);
         dealed.addAll(obj);
         try {
             Thread.sleep(10);

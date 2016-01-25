@@ -4,12 +4,12 @@
 package com.github.phantomthief.collection.impl;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.concurrent.Executors.newScheduledThreadPool;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
@@ -39,8 +39,8 @@ public final class BatchConsumerTriggerBuilder<E> {
         return this;
     }
 
-    public BatchConsumerTriggerBuilder<E>
-            setScheduleExecutorService(ScheduledExecutorService scheduledExecutorService) {
+    public BatchConsumerTriggerBuilder<E> setScheduleExecutorService(
+            ScheduledExecutorService scheduledExecutorService) {
         this.scheduledExecutorService = scheduledExecutorService;
         return this;
     }
@@ -67,8 +67,8 @@ public final class BatchConsumerTriggerBuilder<E> {
         return thisBuilder;
     }
 
-    public <E1> BatchConsumerTriggerBuilder<E1>
-            setExceptionHandler(BiConsumer<? super Throwable, ? super List<E1>> exceptionHandler) {
+    public <E1> BatchConsumerTriggerBuilder<E1> setExceptionHandler(
+            BiConsumer<? super Throwable, ? super List<E1>> exceptionHandler) {
         BatchConsumerTriggerBuilder<E1> thisBuilder = (BatchConsumerTriggerBuilder<E1>) this;
         thisBuilder.exceptionHandler = (BiConsumer) exceptionHandler;
         return thisBuilder;
@@ -106,12 +106,11 @@ public final class BatchConsumerTriggerBuilder<E> {
     }
 
     private ScheduledExecutorService makeScheduleExecutor() {
-        ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(1,
-                new ThreadFactoryBuilder()
-                        .setNameFormat("pool-batch-consume-blocking-queue-thread-%d") //
-                        .setDaemon(true) //
-                        .build());
 
-        return scheduledExecutorService;
+        return newScheduledThreadPool(
+                1,
+                new ThreadFactoryBuilder()
+                        .setNameFormat("pool-batch-consume-blocking-queue-thread-%d")
+                        .setDaemon(true).build());
     }
 }

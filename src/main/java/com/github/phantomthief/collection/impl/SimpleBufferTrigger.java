@@ -4,6 +4,7 @@
 package com.github.phantomthief.collection.impl;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static org.slf4j.LoggerFactory.getLogger;
 
 import java.util.Map;
 import java.util.Map.Entry;
@@ -17,6 +18,8 @@ import java.util.function.Consumer;
 import java.util.function.LongConsumer;
 import java.util.function.Supplier;
 
+import org.slf4j.Logger;
+
 import com.github.phantomthief.collection.BufferTrigger;
 import com.github.phantomthief.util.ThrowableConsumer;
 
@@ -25,7 +28,7 @@ import com.github.phantomthief.util.ThrowableConsumer;
  */
 public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
 
-    static org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(SimpleBufferTrigger.class);
+    static Logger logger = getLogger(SimpleBufferTrigger.class);
 
     /**
      * trigger like redis's rdb
@@ -91,6 +94,24 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
         }
     }
 
+    public static SimpleBufferTriggerBuilder<Object, Object> newBuilder() {
+        return new SimpleBufferTriggerBuilder<>();
+    }
+
+    public static <E, C> GenericSimpleBufferTriggerBuilder<E, C> newGenericBuilder() {
+        return new GenericSimpleBufferTriggerBuilder<>(newBuilder());
+    }
+
+    public static SimpleBufferTriggerBuilder<Object, Map<Object, Integer>> newCounterBuilder() {
+        return new SimpleBufferTriggerBuilder<Object, Map<Object, Integer>>() //
+                .setContainer(ConcurrentHashMap::new, (map, element) -> {
+                    map.merge(element, 1,
+                            (oldValue, appendValue) -> oldValue == null ? appendValue : oldValue
+                                    + appendValue);
+                    return true;
+                });
+    }
+
     @Override
     public void enqueue(E element) {
         long currentCount = counter.get();
@@ -113,9 +134,6 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
 
     }
 
-    /* (non-Javadoc)
-     * @see com.github.phantomthief.collection.BufferTrigger#manuallyDoTrigger()
-     */
     @Override
     public void manuallyDoTrigger() {
         synchronized (SimpleBufferTrigger.this) {
@@ -141,29 +159,8 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
         }
     }
 
-    /* (non-Javadoc)
-     * @see com.github.phantomthief.collection.BufferTrigger#getPendingChanges()
-     */
     @Override
     public long getPendingChanges() {
         return counter.get();
-    }
-
-    public static SimpleBufferTriggerBuilder<Object, Object> newBuilder() {
-        return new SimpleBufferTriggerBuilder<>();
-    }
-
-    public static <E, C> GenericSimpleBufferTriggerBuilder<E, C> newGenericBuilder() {
-        return new GenericSimpleBufferTriggerBuilder<>(newBuilder());
-    }
-
-    public static SimpleBufferTriggerBuilder<Object, Map<Object, Integer>> newCounterBuilder() {
-        return new SimpleBufferTriggerBuilder<Object, Map<Object, Integer>>() //
-                .setContainer(ConcurrentHashMap::new, (map, element) -> {
-                    map.merge(element, 1,
-                            (oldValue, appendValue) -> oldValue == null ? appendValue : oldValue
-                                    + appendValue);
-                    return true;
-                });
     }
 }

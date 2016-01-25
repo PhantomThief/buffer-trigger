@@ -8,9 +8,9 @@ package com.github.phantomthief.collection;
  */
 public interface BufferTrigger<E> {
 
-    public void enqueue(E element);
+    void enqueue(E element);
 
-    public void manuallyDoTrigger();
+    void manuallyDoTrigger();
 
-    public long getPendingChanges();
+    long getPendingChanges();
 }

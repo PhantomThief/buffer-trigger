@@ -5,13 +5,14 @@ package com.github.phantomthief.collection.impl;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static java.lang.Math.max;
+import static java.util.Collections.synchronizedSet;
+import static java.util.concurrent.Executors.newScheduledThreadPool;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
@@ -27,6 +28,7 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 @SuppressWarnings("unchecked")
 public class SimpleBufferTriggerBuilder<E, C> {
 
+    private final Map<Long, Long> triggerMap = new HashMap<>();
     private ScheduledExecutorService scheduledExecutorService;
     private Supplier<C> bufferFactory;
     private BiPredicate<C, E> queueAdder;
@@ -36,7 +38,6 @@ public class SimpleBufferTriggerBuilder<E, C> {
     private Consumer<E> rejectHandler;
     private long warningBufferThreshold;
     private LongConsumer warningBufferHandler;
-    private final Map<Long, Long> triggerMap = new HashMap<>();
 
     /**
      * <b>warning:</b> the container must be thread-safed.
@@ -56,14 +57,14 @@ public class SimpleBufferTriggerBuilder<E, C> {
         return thisBuilder;
     }
 
-    public SimpleBufferTriggerBuilder<E, C>
-            setScheduleExecutorService(ScheduledExecutorService scheduledExecutorService) {
+    public SimpleBufferTriggerBuilder<E, C> setScheduleExecutorService(
+            ScheduledExecutorService scheduledExecutorService) {
         this.scheduledExecutorService = scheduledExecutorService;
         return this;
     }
 
-    public <E1, C1> SimpleBufferTriggerBuilder<E1, C1>
-            setExceptionHandler(BiConsumer<? super Throwable, ? super C1> exceptionHandler) {
+    public <E1, C1> SimpleBufferTriggerBuilder<E1, C1> setExceptionHandler(
+            BiConsumer<? super Throwable, ? super C1> exceptionHandler) {
         SimpleBufferTriggerBuilder<E1, C1> thisBuilder = (SimpleBufferTriggerBuilder<E1, C1>) this;
         thisBuilder.exceptionHandler = (BiConsumer<Throwable, C1>) exceptionHandler;
         return thisBuilder;
@@ -74,7 +75,8 @@ public class SimpleBufferTriggerBuilder<E, C> {
         return this;
     }
 
-    public <E1, C1> SimpleBufferTriggerBuilder<E1, C1> consumer(ThrowableConsumer<? super C1, Throwable> consumer) {
+    public <E1, C1> SimpleBufferTriggerBuilder<E1, C1> consumer(
+            ThrowableConsumer<? super C1, Throwable> consumer) {
         checkNotNull(consumer);
         SimpleBufferTriggerBuilder<E1, C1> thisBuilder = (SimpleBufferTriggerBuilder<E1, C1>) this;
         thisBuilder.consumer = (ThrowableConsumer<C1, Throwable>) consumer;
@@ -94,14 +96,17 @@ public class SimpleBufferTriggerBuilder<E, C> {
     /**
      * it's better dealing this in container
      */
-    public <E1, C1> SimpleBufferTriggerBuilder<E1, C1> maxBufferCount(long count, Consumer<? super E1> rejectHandler) {
-        return (SimpleBufferTriggerBuilder<E1, C1>) maxBufferCount(count).rejectHandler(rejectHandler);
+    public <E1, C1> SimpleBufferTriggerBuilder<E1, C1> maxBufferCount(long count,
+            Consumer<? super E1> rejectHandler) {
+        return (SimpleBufferTriggerBuilder<E1, C1>) maxBufferCount(count).rejectHandler(
+                rejectHandler);
     }
 
     /**
      * it's better dealing this in container
      */
-    public <E1, C1> SimpleBufferTriggerBuilder<E1, C1> rejectHandler(Consumer<? super E1> rejectHandler) {
+    public <E1, C1> SimpleBufferTriggerBuilder<E1, C1> rejectHandler(
+            Consumer<? super E1> rejectHandler) {
         checkNotNull(rejectHandler);
         SimpleBufferTriggerBuilder<E1, C1> thisBuilder = (SimpleBufferTriggerBuilder<E1, C1>) this;
         thisBuilder.rejectHandler = (Consumer<E1>) rejectHandler;
@@ -120,7 +125,7 @@ public class SimpleBufferTriggerBuilder<E, C> {
     public <E1> BufferTrigger<E1> build() {
         return new LazyBufferTrigger<>(() -> {
             ensure();
-            return new SimpleBufferTrigger<E1>((Supplier<Object>) bufferFactory,
+            return new SimpleBufferTrigger<>((Supplier<Object>) bufferFactory,
                     (BiPredicate<Object, E1>) queueAdder, scheduledExecutorService,
                     (ThrowableConsumer<Object, Throwable>) consumer, triggerMap,
                     (BiConsumer<Throwable, Object>) exceptionHandler, maxBufferCount,
@@ -132,7 +137,7 @@ public class SimpleBufferTriggerBuilder<E, C> {
         checkNotNull(consumer);
 
         if (bufferFactory == null) {
-            bufferFactory = () -> (C) Collections.synchronizedSet(new HashSet<>());
+            bufferFactory = () -> (C) synchronizedSet(new HashSet<>());
         }
         if (queueAdder == null) {
             queueAdder = (c, e) -> ((Set<E>) c).add(e);
@@ -142,9 +147,9 @@ public class SimpleBufferTriggerBuilder<E, C> {
         }
         if (maxBufferCount > 0 && warningBufferThreshold > 0) {
             if (warningBufferThreshold >= maxBufferCount) {
-                SimpleBufferTrigger.logger.warn(
-                        "invalid warning threshold:{}, it shouldn't be larger than maxBufferSize. ignore warning threshold.",
-                        warningBufferThreshold);
+                SimpleBufferTrigger.logger
+                        .warn("invalid warning threshold:{}, it shouldn't be larger than maxBufferSize. ignore warning threshold.",
+                                warningBufferThreshold);
                 warningBufferThreshold = 0;
                 warningBufferHandler = null;
             }
@@ -152,12 +157,10 @@ public class SimpleBufferTriggerBuilder<E, C> {
     }
 
     private ScheduledExecutorService makeScheduleExecutor() {
-        ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(
-                Math.max(1, triggerMap.size()),
-                new ThreadFactoryBuilder().setNameFormat("pool-simple-buffer-trigger-thread-%d") //
-                        .setDaemon(true) //
-                        .build());
 
-        return scheduledExecutorService;
+        return newScheduledThreadPool(max(1, triggerMap.size()), new ThreadFactoryBuilder()
+                .setNameFormat("pool-simple-buffer-trigger-thread-%d") //
+                .setDaemon(true) //
+                .build());
     }
 }

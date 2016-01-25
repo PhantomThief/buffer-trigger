@@ -43,7 +43,7 @@ public class MultiThreadQueueTriggerTest {
         assert (dealed.equals(allData));
     }
 
-    private final void delay(Collection<String> obj) {
+    private void delay(Collection<String> obj) {
         try {
             System.out.println("delayed:" + obj);
             Thread.sleep(TimeUnit.SECONDS.toMillis(2));

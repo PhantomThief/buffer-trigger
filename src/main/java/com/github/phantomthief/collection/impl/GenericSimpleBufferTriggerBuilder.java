@@ -31,14 +31,14 @@ public class GenericSimpleBufferTriggerBuilder<E, C> {
         return this;
     }
 
-    public GenericSimpleBufferTriggerBuilder<E, C>
-            setScheduleExecutorService(ScheduledExecutorService scheduledExecutorService) {
+    public GenericSimpleBufferTriggerBuilder<E, C> setScheduleExecutorService(
+            ScheduledExecutorService scheduledExecutorService) {
         builder.setScheduleExecutorService(scheduledExecutorService);
         return this;
     }
 
-    public GenericSimpleBufferTriggerBuilder<E, C>
-            setExceptionHandler(BiConsumer<? super Throwable, ? super C> exceptionHandler) {
+    public GenericSimpleBufferTriggerBuilder<E, C> setExceptionHandler(
+            BiConsumer<? super Throwable, ? super C> exceptionHandler) {
         builder.setExceptionHandler(exceptionHandler);
         return this;
     }
@@ -48,8 +48,8 @@ public class GenericSimpleBufferTriggerBuilder<E, C> {
         return this;
     }
 
-    public GenericSimpleBufferTriggerBuilder<E, C>
-            consumer(ThrowableConsumer<? super C, Throwable> consumer) {
+    public GenericSimpleBufferTriggerBuilder<E, C> consumer(
+            ThrowableConsumer<? super C, Throwable> consumer) {
         builder.consumer(consumer);
         return this;
     }
@@ -65,8 +65,7 @@ public class GenericSimpleBufferTriggerBuilder<E, C> {
         return this;
     }
 
-    public GenericSimpleBufferTriggerBuilder<E, C>
-            rejectHandler(Consumer<? super E> rejectHandler) {
+    public GenericSimpleBufferTriggerBuilder<E, C> rejectHandler(Consumer<? super E> rejectHandler) {
         builder.rejectHandler(rejectHandler);
         return this;
     }

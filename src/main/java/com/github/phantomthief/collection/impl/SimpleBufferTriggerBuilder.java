@@ -20,6 +20,7 @@ import java.util.function.BiPredicate;
 import java.util.function.Consumer;
 import java.util.function.LongConsumer;
 import java.util.function.Supplier;
+import java.util.function.ToIntBiFunction;
 
 import com.github.phantomthief.collection.BufferTrigger;
 import com.github.phantomthief.util.ThrowableConsumer;
@@ -31,7 +32,7 @@ public class SimpleBufferTriggerBuilder<E, C> {
     private final Map<Long, Long> triggerMap = new HashMap<>();
     private ScheduledExecutorService scheduledExecutorService;
     private Supplier<C> bufferFactory;
-    private BiPredicate<C, E> queueAdder;
+    private ToIntBiFunction<C, E> queueAdder;
     private ThrowableConsumer<C, Throwable> consumer;
     private BiConsumer<Throwable, C> exceptionHandler;
     private long maxBufferCount = -1;
@@ -41,10 +42,9 @@ public class SimpleBufferTriggerBuilder<E, C> {
 
     /**
      * <b>warning:</b> the container must be thread-safed.
-     * 
-     * @param factory
-     * @param queueAdder
-     * @return
+     * better use {@link #setContainerEx}
+     *
+     * @param queueAdder return if there is a change occurred.
      */
     public <E1, C1> SimpleBufferTriggerBuilder<E1, C1> setContainer(Supplier<? extends C1> factory,
             BiPredicate<? super C1, ? super E1> queueAdder) {
@@ -53,7 +53,23 @@ public class SimpleBufferTriggerBuilder<E, C> {
 
         SimpleBufferTriggerBuilder<E1, C1> thisBuilder = (SimpleBufferTriggerBuilder<E1, C1>) this;
         thisBuilder.bufferFactory = (Supplier<C1>) factory;
-        thisBuilder.queueAdder = (BiPredicate<C1, E1>) queueAdder;
+        thisBuilder.queueAdder = (c, e) -> queueAdder.test(c, e) ? 1 : 0;
+        return thisBuilder;
+    }
+
+    /**
+     * <b>warning:</b> the container must be thread-safed.
+     *
+     * @param queueAdder return the change size occurred.
+     */
+    public <E1, C1> SimpleBufferTriggerBuilder<E1, C1> setContainerEx(
+            Supplier<? extends C1> factory, ToIntBiFunction<? super C1, ? super E1> queueAdder) {
+        checkNotNull(factory);
+        checkNotNull(queueAdder);
+
+        SimpleBufferTriggerBuilder<E1, C1> thisBuilder = (SimpleBufferTriggerBuilder<E1, C1>) this;
+        thisBuilder.bufferFactory = (Supplier<C1>) factory;
+        thisBuilder.queueAdder = (ToIntBiFunction<C1, E1>) queueAdder;
         return thisBuilder;
     }
 
@@ -126,7 +142,7 @@ public class SimpleBufferTriggerBuilder<E, C> {
         return new LazyBufferTrigger<>(() -> {
             ensure();
             return new SimpleBufferTrigger<>((Supplier<Object>) bufferFactory,
-                    (BiPredicate<Object, E1>) queueAdder, scheduledExecutorService,
+                    (ToIntBiFunction<Object, E1>) queueAdder, scheduledExecutorService,
                     (ThrowableConsumer<Object, Throwable>) consumer, triggerMap,
                     (BiConsumer<Throwable, Object>) exceptionHandler, maxBufferCount,
                     (Consumer<E1>) rejectHandler, warningBufferThreshold, warningBufferHandler);
@@ -140,7 +156,7 @@ public class SimpleBufferTriggerBuilder<E, C> {
             bufferFactory = () -> (C) synchronizedSet(new HashSet<>());
         }
         if (queueAdder == null) {
-            queueAdder = (c, e) -> ((Set<E>) c).add(e);
+            queueAdder = (c, e) -> ((Set<E>) c).add(e) ? 1 : 0;
         }
         if (!triggerMap.isEmpty() && scheduledExecutorService == null) {
             scheduledExecutorService = makeScheduleExecutor();

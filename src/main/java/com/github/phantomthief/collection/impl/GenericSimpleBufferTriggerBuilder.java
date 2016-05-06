@@ -10,6 +10,7 @@ import java.util.function.BiPredicate;
 import java.util.function.Consumer;
 import java.util.function.LongConsumer;
 import java.util.function.Supplier;
+import java.util.function.ToIntBiFunction;
 
 import com.github.phantomthief.collection.BufferTrigger;
 import com.github.phantomthief.util.ThrowableConsumer;
@@ -25,9 +26,23 @@ public class GenericSimpleBufferTriggerBuilder<E, C> {
         this.builder = builder;
     }
 
+    /**
+     * better use {@link #setContainerEx}
+     *
+     * @param queueAdder return if there is a change occurred.
+     */
     public GenericSimpleBufferTriggerBuilder<E, C> setContainer(Supplier<? extends C> factory,
             BiPredicate<? super C, ? super E> queueAdder) {
         builder.setContainer(factory, queueAdder);
+        return this;
+    }
+
+    /**
+     * @param queueAdder return the change size occurred.
+     */
+    public GenericSimpleBufferTriggerBuilder<E, C> setContainerEx(Supplier<? extends C> factory,
+            ToIntBiFunction<? super C, ? super E> queueAdder) {
+        builder.setContainerEx(factory, queueAdder);
         return this;
     }
 

@@ -13,10 +13,10 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
-import java.util.function.BiPredicate;
 import java.util.function.Consumer;
 import java.util.function.LongConsumer;
 import java.util.function.Supplier;
+import java.util.function.ToIntBiFunction;
 
 import org.slf4j.Logger;
 
@@ -41,7 +41,7 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
 
     private final AtomicLong counter = new AtomicLong();
     private final ThrowableConsumer<Object, Throwable> consumer;
-    private final BiPredicate<Object, E> queueAdder;
+    private final ToIntBiFunction<Object, E> queueAdder;
     private final Supplier<Object> bufferFactory;
     private final BiConsumer<Throwable, Object> exceptionHandler;
     private final AtomicReference<Object> buffer = new AtomicReference<>();
@@ -50,7 +50,7 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
     private final LongConsumer warningBufferHandler;
     private final Consumer<E> rejectHandler;
 
-    SimpleBufferTrigger(Supplier<Object> bufferFactory, BiPredicate<Object, E> queueAdder,
+    SimpleBufferTrigger(Supplier<Object> bufferFactory, ToIntBiFunction<Object, E> queueAdder,
             ScheduledExecutorService scheduledExecutorService,
             ThrowableConsumer<Object, Throwable> consumer, Map<Long, Long> triggerMap,
             BiConsumer<Throwable, Object> exceptionHandler, long maxBufferCount,
@@ -70,25 +70,7 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
                     if (counter.get() < entry.getValue()) {
                         return;
                     }
-                    Object old = null;
-                    try {
-                        old = buffer.getAndSet(bufferFactory.get());
-                        counter.set(0);
-                        if (old != null) {
-                            consumer.accept(old);
-                        }
-                    } catch (Throwable e) {
-                        if (this.exceptionHandler != null) {
-                            try {
-                                this.exceptionHandler.accept(e, old);
-                            } catch (Throwable idontcare) {
-                                e.printStackTrace();
-                                idontcare.printStackTrace();
-                            }
-                        } else {
-                            logger.error("Ops.", e);
-                        }
-                    }
+                    doConsume();
                 }
             }, entry.getKey(), entry.getKey(), MILLISECONDS);
         }
@@ -105,9 +87,7 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
     public static SimpleBufferTriggerBuilder<Object, Map<Object, Integer>> newCounterBuilder() {
         return new SimpleBufferTriggerBuilder<Object, Map<Object, Integer>>() //
                 .setContainer(ConcurrentHashMap::new, (map, element) -> {
-                    map.merge(element, 1,
-                            (oldValue, appendValue) -> oldValue == null ? appendValue : oldValue
-                                    + appendValue);
+                    map.merge(element, 1, Math::addExact);
                     return true;
                 });
     }
@@ -127,9 +107,9 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
             return;
         }
         Object thisBuffer = buffer.updateAndGet(old -> old != null ? old : bufferFactory.get());
-        boolean addSuccess = queueAdder.test(thisBuffer, element);
-        if (addSuccess) {
-            counter.incrementAndGet();
+        int changedCount = queueAdder.applyAsInt(thisBuffer,element);
+        if (changedCount > 0) {
+            counter.addAndGet(changedCount);
         }
 
     }
@@ -137,24 +117,28 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
     @Override
     public void manuallyDoTrigger() {
         synchronized (SimpleBufferTrigger.this) {
-            Object old = null;
-            try {
-                old = buffer.getAndSet(bufferFactory.get());
-                counter.set(0);
-                if (old != null) {
-                    consumer.accept(old);
+            doConsume();
+        }
+    }
+
+    private void doConsume() {
+        Object old = null;
+        try {
+            old = buffer.getAndSet(bufferFactory.get());
+            counter.set(0);
+            if (old != null) {
+                consumer.accept(old);
+            }
+        } catch (Throwable e) {
+            if (this.exceptionHandler != null) {
+                try {
+                    this.exceptionHandler.accept(e, old);
+                } catch (Throwable idontcare) {
+                    e.printStackTrace();
+                    idontcare.printStackTrace();
                 }
-            } catch (Throwable e) {
-                if (this.exceptionHandler != null) {
-                    try {
-                        this.exceptionHandler.accept(e, old);
-                    } catch (Throwable idontcare) {
-                        e.printStackTrace();
-                        idontcare.printStackTrace();
-                    }
-                } else {
-                    logger.error("Ops.", e);
-                }
+            } else {
+                logger.error("Ops.", e);
             }
         }
     }

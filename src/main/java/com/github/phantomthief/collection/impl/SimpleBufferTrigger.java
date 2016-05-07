@@ -64,6 +64,7 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
         this.rejectHandler = rejectHandler;
         this.warningBufferHandler = warningBufferHandler;
         this.warningBufferThreshold = warningBufferThreshold;
+        this.buffer.set(this.bufferFactory.get());
         for (Entry<Long, Long> entry : triggerMap.entrySet()) {
             scheduledExecutorService.scheduleWithFixedDelay(() -> {
                 synchronized (SimpleBufferTrigger.this) {
@@ -106,12 +107,11 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
             }
             return;
         }
-        Object thisBuffer = buffer.updateAndGet(old -> old != null ? old : bufferFactory.get());
-        int changedCount = queueAdder.applyAsInt(thisBuffer,element);
+        Object thisBuffer = buffer.get();
+        int changedCount = queueAdder.applyAsInt(thisBuffer, element);
         if (changedCount > 0) {
             counter.addAndGet(changedCount);
         }
-
     }
 
     @Override

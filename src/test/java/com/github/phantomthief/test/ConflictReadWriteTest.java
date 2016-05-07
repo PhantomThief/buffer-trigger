@@ -14,6 +14,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.github.phantomthief.collection.BufferTrigger;
@@ -28,6 +29,7 @@ public class ConflictReadWriteTest {
 
     private final WeakHashMap<List<Integer>, AtomicInteger> counter = new WeakHashMap<>();
 
+    @Ignore
     @Test
     public void test() {
         Random random = new Random();

@@ -4,6 +4,8 @@
 package com.github.phantomthief.collection.impl;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.locks.ReentrantReadWriteLock.ReadLock;
+import static java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
 import static org.slf4j.LoggerFactory.getLogger;
 
 import java.util.Map;
@@ -12,6 +14,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.LongConsumer;
@@ -49,6 +52,8 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
     private final long warningBufferThreshold;
     private final LongConsumer warningBufferHandler;
     private final Consumer<E> rejectHandler;
+    private final ReadLock readLock;
+    private final WriteLock writeLock;
 
     SimpleBufferTrigger(Supplier<Object> bufferFactory, ToIntBiFunction<Object, E> queueAdder,
             ScheduledExecutorService scheduledExecutorService,
@@ -65,6 +70,9 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
         this.warningBufferHandler = warningBufferHandler;
         this.warningBufferThreshold = warningBufferThreshold;
         this.buffer.set(this.bufferFactory.get());
+        ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
+        readLock = lock.readLock();
+        writeLock = lock.writeLock();
         for (Entry<Long, Long> entry : triggerMap.entrySet()) {
             scheduledExecutorService.scheduleWithFixedDelay(() -> {
                 synchronized (SimpleBufferTrigger.this) {
@@ -107,8 +115,14 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
             }
             return;
         }
-        Object thisBuffer = buffer.get();
-        int changedCount = queueAdder.applyAsInt(thisBuffer, element);
+        readLock.lock();
+        int changedCount;
+        try {
+            Object thisBuffer = buffer.get();
+            changedCount = queueAdder.applyAsInt(thisBuffer, element);
+        } finally {
+            readLock.unlock();
+        }
         if (changedCount > 0) {
             counter.addAndGet(changedCount);
         }
@@ -124,7 +138,12 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
     private void doConsume() {
         Object old = null;
         try {
-            old = buffer.getAndSet(bufferFactory.get());
+            writeLock.lock();
+            try {
+                old = buffer.getAndSet(bufferFactory.get());
+            } finally {
+                writeLock.unlock();
+            }
             counter.set(0);
             if (old != null) {
                 consumer.accept(old);

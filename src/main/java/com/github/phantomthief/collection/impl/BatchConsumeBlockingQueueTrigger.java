@@ -38,33 +38,31 @@ public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
         this.queue = queue;
         this.consumer = consumer;
         this.exceptionHandler = exceptionHandler;
-        scheduledExecutorService.scheduleWithFixedDelay(
-                () -> {
-                    synchronized (BatchConsumeBlockingQueueTrigger.this) {
-                        while (queue.size() >= batchConsumerSize
-                                || (forceConsumeEveryTick && !queue.isEmpty())) {
-                            List<E> toConsumerData = new ArrayList<>(min(batchConsumerSize,
-                                    queue.size()));
-                            queue.drainTo(toConsumerData, batchConsumerSize);
-                            if (!toConsumerData.isEmpty()) {
+        scheduledExecutorService.scheduleWithFixedDelay(() -> {
+            synchronized (BatchConsumeBlockingQueueTrigger.this) {
+                while (queue.size() >= batchConsumerSize
+                        || (forceConsumeEveryTick && !queue.isEmpty())) {
+                    List<E> toConsumerData = new ArrayList<>(min(batchConsumerSize, queue.size()));
+                    queue.drainTo(toConsumerData, batchConsumerSize);
+                    if (!toConsumerData.isEmpty()) {
+                        try {
+                            consumer.accept(toConsumerData);
+                        } catch (Throwable e) {
+                            if (exceptionHandler != null) {
                                 try {
-                                    consumer.accept(toConsumerData);
-                                } catch (Throwable e) {
-                                    if (exceptionHandler != null) {
-                                        try {
-                                            exceptionHandler.accept(e, toConsumerData);
-                                        } catch (Throwable ex) {
-                                            e.printStackTrace();
-                                            ex.printStackTrace();
-                                        }
-                                    } else {
-                                        logger.error("Ops.", e);
-                                    }
+                                    exceptionHandler.accept(e, toConsumerData);
+                                } catch (Throwable ex) {
+                                    e.printStackTrace();
+                                    ex.printStackTrace();
                                 }
+                            } else {
+                                logger.error("Ops.", e);
                             }
                         }
                     }
-                }, tickTime, tickTime, MILLISECONDS);
+                }
+            }
+        }, tickTime, tickTime, MILLISECONDS);
     }
 
     public static BatchConsumerTriggerBuilder<Object> newBuilder() {
@@ -80,9 +78,6 @@ public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
         }
     }
 
-    /* (non-Javadoc)
-     * @see com.github.phantomthief.collection.BufferTrigger#manuallyDoTrigger()
-     */
     @Override
     public void manuallyDoTrigger() {
         synchronized (BatchConsumeBlockingQueueTrigger.this) {
@@ -109,9 +104,6 @@ public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
         }
     }
 
-    /* (non-Javadoc)
-     * @see com.github.phantomthief.collection.BufferTrigger#getPendingChanges()
-     */
     @Override
     public long getPendingChanges() {
         return queue.size();

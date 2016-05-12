@@ -28,8 +28,8 @@ public class GenericBatchConsumerTriggerBuilder<E> {
         return this;
     }
 
-    public GenericBatchConsumerTriggerBuilder<E> setScheduleExecutorService(
-            ScheduledExecutorService scheduledExecutorService) {
+    public GenericBatchConsumerTriggerBuilder<E>
+            setScheduleExecutorService(ScheduledExecutorService scheduledExecutorService) {
         builder.setScheduleExecutorService(scheduledExecutorService);
         return this;
     }
@@ -54,8 +54,8 @@ public class GenericBatchConsumerTriggerBuilder<E> {
         return this;
     }
 
-    public GenericBatchConsumerTriggerBuilder<E> setExceptionHandler(
-            BiConsumer<? super Throwable, ? super List<E>> exceptionHandler) {
+    public GenericBatchConsumerTriggerBuilder<E>
+            setExceptionHandler(BiConsumer<? super Throwable, ? super List<E>> exceptionHandler) {
         builder.setExceptionHandler(exceptionHandler);
         return this;
     }

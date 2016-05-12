@@ -73,14 +73,14 @@ public class SimpleBufferTriggerBuilder<E, C> {
         return thisBuilder;
     }
 
-    public SimpleBufferTriggerBuilder<E, C> setScheduleExecutorService(
-            ScheduledExecutorService scheduledExecutorService) {
+    public SimpleBufferTriggerBuilder<E, C>
+            setScheduleExecutorService(ScheduledExecutorService scheduledExecutorService) {
         this.scheduledExecutorService = scheduledExecutorService;
         return this;
     }
 
-    public <E1, C1> SimpleBufferTriggerBuilder<E1, C1> setExceptionHandler(
-            BiConsumer<? super Throwable, ? super C1> exceptionHandler) {
+    public <E1, C1> SimpleBufferTriggerBuilder<E1, C1>
+            setExceptionHandler(BiConsumer<? super Throwable, ? super C1> exceptionHandler) {
         SimpleBufferTriggerBuilder<E1, C1> thisBuilder = (SimpleBufferTriggerBuilder<E1, C1>) this;
         thisBuilder.exceptionHandler = (BiConsumer<Throwable, C1>) exceptionHandler;
         return thisBuilder;
@@ -91,8 +91,8 @@ public class SimpleBufferTriggerBuilder<E, C> {
         return this;
     }
 
-    public <E1, C1> SimpleBufferTriggerBuilder<E1, C1> consumer(
-            ThrowableConsumer<? super C1, Throwable> consumer) {
+    public <E1, C1> SimpleBufferTriggerBuilder<E1, C1>
+            consumer(ThrowableConsumer<? super C1, Throwable> consumer) {
         checkNotNull(consumer);
         SimpleBufferTriggerBuilder<E1, C1> thisBuilder = (SimpleBufferTriggerBuilder<E1, C1>) this;
         thisBuilder.consumer = (ThrowableConsumer<C1, Throwable>) consumer;
@@ -114,15 +114,15 @@ public class SimpleBufferTriggerBuilder<E, C> {
      */
     public <E1, C1> SimpleBufferTriggerBuilder<E1, C1> maxBufferCount(long count,
             Consumer<? super E1> rejectHandler) {
-        return (SimpleBufferTriggerBuilder<E1, C1>) maxBufferCount(count).rejectHandler(
-                rejectHandler);
+        return (SimpleBufferTriggerBuilder<E1, C1>) maxBufferCount(count)
+                .rejectHandler(rejectHandler);
     }
 
     /**
      * it's better dealing this in container
      */
-    public <E1, C1> SimpleBufferTriggerBuilder<E1, C1> rejectHandler(
-            Consumer<? super E1> rejectHandler) {
+    public <E1, C1> SimpleBufferTriggerBuilder<E1, C1>
+            rejectHandler(Consumer<? super E1> rejectHandler) {
         checkNotNull(rejectHandler);
         SimpleBufferTriggerBuilder<E1, C1> thisBuilder = (SimpleBufferTriggerBuilder<E1, C1>) this;
         thisBuilder.rejectHandler = (Consumer<E1>) rejectHandler;
@@ -163,9 +163,9 @@ public class SimpleBufferTriggerBuilder<E, C> {
         }
         if (maxBufferCount > 0 && warningBufferThreshold > 0) {
             if (warningBufferThreshold >= maxBufferCount) {
-                SimpleBufferTrigger.logger
-                        .warn("invalid warning threshold:{}, it shouldn't be larger than maxBufferSize. ignore warning threshold.",
-                                warningBufferThreshold);
+                SimpleBufferTrigger.logger.warn(
+                        "invalid warning threshold:{}, it shouldn't be larger than maxBufferSize. ignore warning threshold.",
+                        warningBufferThreshold);
                 warningBufferThreshold = 0;
                 warningBufferHandler = null;
             }
@@ -174,9 +174,9 @@ public class SimpleBufferTriggerBuilder<E, C> {
 
     private ScheduledExecutorService makeScheduleExecutor() {
 
-        return newScheduledThreadPool(max(1, triggerMap.size()), new ThreadFactoryBuilder()
-                .setNameFormat("pool-simple-buffer-trigger-thread-%d") //
-                .setDaemon(true) //
-                .build());
+        return newScheduledThreadPool(max(1, triggerMap.size()),
+                new ThreadFactoryBuilder().setNameFormat("pool-simple-buffer-trigger-thread-%d") //
+                        .setDaemon(true) //
+                        .build());
     }
 }

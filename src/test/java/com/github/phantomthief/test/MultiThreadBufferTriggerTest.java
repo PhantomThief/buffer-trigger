@@ -128,8 +128,9 @@ public class MultiThreadBufferTriggerTest {
     }
 
     private void out(Set<String> obj) {
-        System.out.println(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(System
-                .currentTimeMillis()) + "\t" + obj);
+        System.out.println(
+                new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(System.currentTimeMillis())
+                        + "\t" + obj);
         dealed.addAll(obj);
         try {
             Thread.sleep(10);

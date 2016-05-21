@@ -4,7 +4,9 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -33,9 +35,18 @@ public class TickerBatchInvoker<K, V> implements Function<K, CompletableFuture<V
             ExecutorService executor) {
         this.batchInvoker = batchInvoker;
         this.executor = executor;
-        this.bufferTrigger = SimpleBufferTrigger.<TwoTuple<K, CompletableFuture<V>>, Map<K, CompletableFuture<V>>>newGenericBuilder() //
+        this.bufferTrigger = SimpleBufferTrigger
+                .<TwoTuple<K, CompletableFuture<V>>, Map<K, List<CompletableFuture<V>>>> newGenericBuilder() //
                 .setContainer(ConcurrentHashMap::new, (map, e) -> {
-                    map.put(e.getFirst(), e.getSecond());
+                    map.compute(e.getFirst(), (k, list) -> {
+                        if (list == null) {
+                            list = new ArrayList<>();
+                        }
+                        synchronized (list) {
+                            list.add(e.getSecond());
+                        }
+                        return list;
+                    });
                     return true;
                 }) //
                 .on(ticker, MILLISECONDS, 1) //
@@ -47,13 +58,29 @@ public class TickerBatchInvoker<K, V> implements Function<K, CompletableFuture<V
         return new Builder();
     }
 
-    private void batchInvoke(Map<K, CompletableFuture<V>> map) {
+    private void batchInvoke(Map<K, List<CompletableFuture<V>>> map) {
         executor.execute(() -> {
             try {
                 Map<K, V> result = batchInvoker.apply(map.keySet());
-                map.forEach((key, future) -> future.complete(result.get(key)));
+                map.forEach((key, futures) -> {
+                    V v = result.get(key);
+                    // 虽然框架会尽力保证enqueue/consume是互斥的,但是这里还是重复保证下
+                    synchronized (futures) {
+                        for (CompletableFuture<V> future : futures) {
+                            future.complete(v);
+                        }
+                    }
+                });
             } catch (Throwable e) {
-                map.values().forEach(future -> future.completeExceptionally(e));
+                for (List<CompletableFuture<V>> futures : map.values()) {
+                    synchronized (futures) {
+                        for (CompletableFuture<V> future : futures) {
+                            if (!future.isDone()) {
+                                future.completeExceptionally(e);
+                            }
+                        }
+                    }
+                }
             }
         });
     }

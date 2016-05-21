@@ -1,5 +1,6 @@
 package com.github.phantomthief.util;
 
+import static com.github.phantomthief.tuple.Tuple.tuple;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -17,7 +18,6 @@ import java.util.function.Function;
 
 import com.github.phantomthief.collection.BufferTrigger;
 import com.github.phantomthief.collection.impl.SimpleBufferTrigger;
-import com.github.phantomthief.tuple.Tuple;
 import com.github.phantomthief.tuple.TwoTuple;
 
 /**
@@ -35,20 +35,8 @@ public class TickerBatchInvoker<K, V> implements Function<K, CompletableFuture<V
             ExecutorService executor) {
         this.batchInvoker = batchInvoker;
         this.executor = executor;
-        this.bufferTrigger = SimpleBufferTrigger
-                .<TwoTuple<K, CompletableFuture<V>>, Map<K, List<CompletableFuture<V>>>> newGenericBuilder() //
-                .setContainer(ConcurrentHashMap::new, (map, e) -> {
-                    map.compute(e.getFirst(), (k, list) -> {
-                        if (list == null) {
-                            list = new ArrayList<>();
-                        }
-                        synchronized (list) {
-                            list.add(e.getSecond());
-                        }
-                        return list;
-                    });
-                    return true;
-                }) //
+        this.bufferTrigger = SimpleBufferTrigger.newBuilder() //
+                .setContainer(ConcurrentHashMap::new, this::enqueue) //
                 .on(ticker, MILLISECONDS, 1) //
                 .consumer(this::batchInvoke) //
                 .build();
@@ -56,6 +44,20 @@ public class TickerBatchInvoker<K, V> implements Function<K, CompletableFuture<V
 
     public static Builder newBuilder() {
         return new Builder();
+    }
+
+    private boolean enqueue(Map<K, List<CompletableFuture<V>>> map,
+            TwoTuple<K, CompletableFuture<V>> e) {
+        map.compute(e.getFirst(), (k, list) -> {
+            if (list == null) {
+                list = new ArrayList<>();
+            }
+            synchronized (list) {
+                list.add(e.getSecond());
+            }
+            return list;
+        });
+        return true;
     }
 
     private void batchInvoke(Map<K, List<CompletableFuture<V>>> map) {
@@ -74,11 +76,9 @@ public class TickerBatchInvoker<K, V> implements Function<K, CompletableFuture<V
             } catch (Throwable e) {
                 for (List<CompletableFuture<V>> futures : map.values()) {
                     synchronized (futures) {
-                        for (CompletableFuture<V> future : futures) {
-                            if (!future.isDone()) {
-                                future.completeExceptionally(e);
-                            }
-                        }
+                        futures.stream() //
+                                .filter(future -> !future.isDone()) //
+                                .forEach(future -> future.completeExceptionally(e));
                     }
                 }
             }
@@ -88,7 +88,7 @@ public class TickerBatchInvoker<K, V> implements Function<K, CompletableFuture<V
     @Override
     public CompletableFuture<V> apply(K key) {
         CompletableFuture<V> future = new CompletableFuture<>();
-        bufferTrigger.enqueue(Tuple.tuple(key, future));
+        bufferTrigger.enqueue(tuple(key, future));
         return future;
     }
 

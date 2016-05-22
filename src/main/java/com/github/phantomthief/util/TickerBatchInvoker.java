@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
@@ -27,12 +27,12 @@ import com.github.phantomthief.tuple.TwoTuple;
 public class TickerBatchInvoker<K, V> implements Function<K, CompletableFuture<V>> {
 
     private final ThrowableFunction<Collection<K>, Map<K, V>, ? extends Throwable> batchInvoker;
-    private final ExecutorService executor;
+    private final Executor executor;
     private final BufferTrigger<TwoTuple<K, CompletableFuture<V>>> bufferTrigger;
 
     private TickerBatchInvoker(long ticker,
             ThrowableFunction<Collection<K>, Map<K, V>, ? extends Throwable> batchInvoker,
-            ExecutorService executor) {
+            Executor executor) {
         this.batchInvoker = batchInvoker;
         this.executor = executor;
         this.bufferTrigger = SimpleBufferTrigger.newBuilder() //
@@ -95,7 +95,7 @@ public class TickerBatchInvoker<K, V> implements Function<K, CompletableFuture<V
     public static class Builder {
 
         private long ticker;
-        private ExecutorService executorService;
+        private Executor executor;
 
         private Builder() {
         }
@@ -105,13 +105,13 @@ public class TickerBatchInvoker<K, V> implements Function<K, CompletableFuture<V
             return this;
         }
 
-        public Builder executor(ExecutorService executor) {
-            this.executorService = executor;
+        public Builder executor(Executor executor) {
+            this.executor = executor;
             return this;
         }
 
         public Builder threads(int nThreads) {
-            this.executorService = Executors.newFixedThreadPool(nThreads);
+            this.executor = Executors.newFixedThreadPool(nThreads);
             return this;
         }
 
@@ -119,15 +119,15 @@ public class TickerBatchInvoker<K, V> implements Function<K, CompletableFuture<V
                 ThrowableFunction<Collection<K>, Map<K, V>, ? extends Throwable> batchInvoker) {
             checkNotNull(batchInvoker);
             ensure();
-            return new TickerBatchInvoker<>(ticker, batchInvoker, executorService);
+            return new TickerBatchInvoker<>(ticker, batchInvoker, executor);
         }
 
         private void ensure() {
             if (ticker <= 0) {
                 ticker = SECONDS.toMillis(1);
             }
-            if (executorService == null) {
-                executorService = Executors.newCachedThreadPool();
+            if (executor == null) {
+                executor = Executors.newCachedThreadPool();
             }
         }
     }

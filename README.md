@@ -27,7 +27,7 @@ BufferTrigger<String> buffer = SimpleBufferTrigger.<String, Set<String>> newBuil
         .on(2, TimeUnit.SECONDS, 10) //
         .on(1, TimeUnit.SECONDS, 10000) //
         .consumer(this::out) //
-        .setContainer(ConcurrentSkipListSet::new, Set::add) // default is Collections.synchronizedSet(new HashSet())
+        .setContainer(ConcurrentSkipListSet::new, Set::add) // default is Collections.newSetFromMap(new ConcurrentHashMap<>())
         .build();
         
 // enqueue

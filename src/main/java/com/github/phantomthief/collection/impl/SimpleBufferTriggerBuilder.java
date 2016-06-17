@@ -6,13 +6,13 @@ package com.github.phantomthief.collection.impl;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.lang.Math.max;
-import static java.util.Collections.synchronizedSet;
+import static java.util.Collections.newSetFromMap;
 import static java.util.concurrent.Executors.newScheduledThreadPool;
 
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
@@ -152,10 +152,8 @@ public class SimpleBufferTriggerBuilder<E, C> {
     private void ensure() {
         checkNotNull(consumer);
 
-        if (bufferFactory == null) {
-            bufferFactory = () -> (C) synchronizedSet(new HashSet<>());
-        }
-        if (queueAdder == null) {
+        if (bufferFactory == null && queueAdder == null) {
+            bufferFactory = () -> (C) newSetFromMap(new ConcurrentHashMap<>());
             queueAdder = (c, e) -> ((Set<E>) c).add(e) ? 1 : 0;
         }
         if (!triggerMap.isEmpty() && scheduledExecutorService == null) {

@@ -81,8 +81,8 @@ public class MultiThreadBufferTriggerTest {
     @Test
     public void test3() throws InterruptedException {
         BufferTrigger<String> buffer = SimpleBufferTrigger.newBuilder() //
-                .on(1, TimeUnit.SECONDS, 1) //
-                .on(2, TimeUnit.SECONDS, 2) //
+                .on(1, TimeUnit.SECONDS, 2) //
+                .on(2, TimeUnit.SECONDS, 1) //
                 .consumer(this::delay) //
                 .build();
         for (int i = 0; i < 10; i++) {

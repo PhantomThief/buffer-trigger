@@ -25,7 +25,22 @@ public class MultiIntervalTriggerStrategy implements TriggerStrategy {
 
     public MultiIntervalTriggerStrategy on(long interval, TimeUnit unit, long count) {
         triggerMap.put(unit.toMillis(interval), count);
+        checkTriggerMap();
         return this;
+    }
+
+    private void checkTriggerMap() {
+        Long maxTrigChangeCount = null;
+        for (Long trigChangedCount : triggerMap.values()) {
+            if (maxTrigChangeCount == null) {
+                maxTrigChangeCount = trigChangedCount;
+            } else {
+                if (maxTrigChangeCount <= trigChangedCount) {
+                    throw new IllegalArgumentException(
+                            "found invalid trigger setting:" + triggerMap);
+                }
+            }
+        }
     }
 
     @Override

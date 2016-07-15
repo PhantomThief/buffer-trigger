@@ -2,11 +2,13 @@ package com.github.phantomthief.test;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.junit.Assert;
 import org.junit.Test;
 
 import com.github.phantomthief.collection.BufferTrigger;
@@ -29,7 +31,7 @@ public class MultiIntervalTriggerTest {
                 .on(1, SECONDS, 100) //
                 .consumer(set -> {
                     System.out.println("size:" + set.size());
-                    Assert.assertEquals(set.size(), assertSize.get());
+                    assertEquals(set.size(), assertSize.get());
                 }) //
                 .build();
 
@@ -44,6 +46,22 @@ public class MultiIntervalTriggerTest {
         sleep(11);
 
         sleepUninterruptibly(10, SECONDS);
+    }
+
+    @Test
+    public void testInvalidBuild() {
+        try {
+            SimpleBufferTrigger.<Integer, Set<Interner>> newGenericBuilder() //
+                    .interval(1, SECONDS) //
+                    .interval(2, SECONDS) //
+                    .consumer(set -> {
+                        System.out.println("size:" + set.size());
+                    }) //
+                    .build();
+            fail();
+        } catch (IllegalArgumentException e) {
+            assertTrue(true);
+        }
     }
 
     private void enqueue(BufferTrigger<Integer> trigger, int size) {

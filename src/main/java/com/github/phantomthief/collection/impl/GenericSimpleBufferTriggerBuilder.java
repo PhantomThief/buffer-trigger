@@ -8,7 +8,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.BiPredicate;
 import java.util.function.Consumer;
-import java.util.function.LongConsumer;
 import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 import java.util.function.ToIntBiFunction;
@@ -110,12 +109,6 @@ public class GenericSimpleBufferTriggerBuilder<E, C> {
     public GenericSimpleBufferTriggerBuilder<E, C>
             rejectHandler(Consumer<? super E> rejectHandler) {
         builder.rejectHandler(rejectHandler);
-        return this;
-    }
-
-    public GenericSimpleBufferTriggerBuilder<E, C> warningThreshold(long threshold,
-            LongConsumer handler) {
-        builder.warningThreshold(threshold, handler);
         return this;
     }
 

@@ -17,7 +17,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.BiPredicate;
 import java.util.function.Consumer;
-import java.util.function.LongConsumer;
 import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 import java.util.function.ToIntBiFunction;
@@ -45,8 +44,6 @@ public class SimpleBufferTriggerBuilder<E, C> {
     private BiConsumer<Throwable, C> exceptionHandler;
     private long maxBufferCount = -1;
     private Consumer<E> rejectHandler;
-    private long warningBufferThreshold;
-    private LongConsumer warningBufferHandler;
 
     /**
      * <b>warning:</b> the container must be thread-safed.
@@ -171,15 +168,6 @@ public class SimpleBufferTriggerBuilder<E, C> {
         return thisBuilder;
     }
 
-    public SimpleBufferTriggerBuilder<E, C> warningThreshold(long threshold, LongConsumer handler) {
-        checkNotNull(handler);
-        checkArgument(threshold > 0);
-
-        this.warningBufferHandler = handler;
-        this.warningBufferThreshold = threshold;
-        return this;
-    }
-
     public <E1> BufferTrigger<E1> build() {
         return new LazyBufferTrigger<>(() -> {
             ensure();
@@ -187,7 +175,7 @@ public class SimpleBufferTriggerBuilder<E, C> {
                     (ToIntBiFunction<Object, E1>) queueAdder, scheduledExecutorService,
                     (ThrowableConsumer<Object, Throwable>) consumer, tickTime, triggerStrategy,
                     (BiConsumer<Throwable, Object>) exceptionHandler, maxBufferCount,
-                    (Consumer<E1>) rejectHandler, warningBufferThreshold, warningBufferHandler);
+                    (Consumer<E1>) rejectHandler);
         });
     }
 
@@ -208,15 +196,6 @@ public class SimpleBufferTriggerBuilder<E, C> {
         }
         if (scheduledExecutorService == null) {
             scheduledExecutorService = makeScheduleExecutor();
-        }
-        if (maxBufferCount > 0 && warningBufferThreshold > 0) {
-            if (warningBufferThreshold >= maxBufferCount) {
-                logger.warn(
-                        "invalid warning threshold:{}, it shouldn't be larger than maxBufferSize. ignore warning threshold.",
-                        warningBufferThreshold);
-                warningBufferThreshold = 0;
-                warningBufferHandler = null;
-            }
         }
     }
 

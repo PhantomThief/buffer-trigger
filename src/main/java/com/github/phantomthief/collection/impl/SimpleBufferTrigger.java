@@ -17,7 +17,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
-import java.util.function.LongConsumer;
 import java.util.function.Supplier;
 import java.util.function.ToIntBiFunction;
 
@@ -40,8 +39,6 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
     private final BiConsumer<Throwable, Object> exceptionHandler;
     private final AtomicReference<Object> buffer = new AtomicReference<>();
     private final long maxBufferCount;
-    private final long warningBufferThreshold;
-    private final LongConsumer warningBufferHandler;
     private final Consumer<E> rejectHandler;
     private final ReadLock readLock;
     private final WriteLock writeLock;
@@ -52,16 +49,13 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
             ScheduledExecutorService scheduledExecutorService,
             ThrowableConsumer<Object, Throwable> consumer, long tickTime,
             TriggerStrategy triggerStrategy, BiConsumer<Throwable, Object> exceptionHandler,
-            long maxBufferCount, Consumer<E> rejectHandler, long warningBufferThreshold,
-            LongConsumer warningBufferHandler) {
+            long maxBufferCount, Consumer<E> rejectHandler) {
         this.queueAdder = queueAdder;
         this.bufferFactory = bufferFactory;
         this.consumer = consumer;
         this.exceptionHandler = exceptionHandler;
         this.maxBufferCount = maxBufferCount;
         this.rejectHandler = rejectHandler;
-        this.warningBufferHandler = warningBufferHandler;
-        this.warningBufferThreshold = warningBufferThreshold;
         this.buffer.set(this.bufferFactory.get());
         ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
         readLock = lock.readLock();
@@ -99,11 +93,6 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
     @Override
     public void enqueue(E element) {
         long currentCount = counter.get();
-        if (warningBufferThreshold > 0 && maxBufferCount > 0 && warningBufferHandler != null) {
-            if (currentCount >= warningBufferThreshold) {
-                warningBufferHandler.accept(currentCount);
-            }
-        }
         if (maxBufferCount > 0 && currentCount >= maxBufferCount) {
             if (rejectHandler != null) {
                 rejectHandler.accept(element);

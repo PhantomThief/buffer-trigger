@@ -3,12 +3,11 @@
  */
 package com.github.phantomthief.collection.impl;
 
-import static com.github.phantomthief.collection.impl.SimpleBufferTrigger.TriggerStrategy.TriggerResult;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.util.Collections.newSetFromMap;
 import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
-import static java.util.concurrent.TimeUnit.DAYS;
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -33,6 +32,9 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 public class SimpleBufferTriggerBuilder<E, C> {
 
     private static final Logger logger = LoggerFactory.getLogger(SimpleBufferTriggerBuilder.class);
+    private static final long DEFAULT_TICK_TIME = SECONDS.toMillis(1);
+
+    private long tickTime;
     private TriggerStrategy triggerStrategy;
     private ScheduledExecutorService scheduledExecutorService;
     private Supplier<C> bufferFactory;
@@ -75,6 +77,11 @@ public class SimpleBufferTriggerBuilder<E, C> {
         thisBuilder.bufferFactory = (Supplier<C1>) factory;
         thisBuilder.queueAdder = (ToIntBiFunction<C1, E1>) queueAdder;
         return thisBuilder;
+    }
+
+    public SimpleBufferTriggerBuilder<E, C> tickTime(long time, TimeUnit unit) {
+        this.tickTime = unit.toMillis(time);
+        return this;
     }
 
     public SimpleBufferTriggerBuilder<E, C>
@@ -169,7 +176,7 @@ public class SimpleBufferTriggerBuilder<E, C> {
             ensure();
             return new SimpleBufferTrigger<>((Supplier<Object>) bufferFactory,
                     (ToIntBiFunction<Object, E1>) queueAdder, scheduledExecutorService,
-                    (ThrowableConsumer<Object, Throwable>) consumer, triggerStrategy,
+                    (ThrowableConsumer<Object, Throwable>) consumer, tickTime, triggerStrategy,
                     (BiConsumer<Throwable, Object>) exceptionHandler, maxBufferCount,
                     (Consumer<E1>) rejectHandler, warningBufferThreshold, warningBufferHandler);
         });
@@ -178,9 +185,12 @@ public class SimpleBufferTriggerBuilder<E, C> {
     private void ensure() {
         checkNotNull(consumer);
 
+        if (tickTime <= 0) {
+            tickTime = DEFAULT_TICK_TIME;
+        }
         if (triggerStrategy == null) {
             logger.warn("no trigger strategy found. using NO-OP trigger");
-            triggerStrategy = (t, n) -> TriggerResult.next(false, 1, DAYS);
+            triggerStrategy = (t, n) -> false;
         }
 
         if (bufferFactory == null && queueAdder == null) {
@@ -192,7 +202,7 @@ public class SimpleBufferTriggerBuilder<E, C> {
         }
         if (maxBufferCount > 0 && warningBufferThreshold > 0) {
             if (warningBufferThreshold >= maxBufferCount) {
-                SimpleBufferTrigger.logger.warn(
+                logger.warn(
                         "invalid warning threshold:{}, it shouldn't be larger than maxBufferSize. ignore warning threshold.",
                         warningBufferThreshold);
                 warningBufferThreshold = 0;

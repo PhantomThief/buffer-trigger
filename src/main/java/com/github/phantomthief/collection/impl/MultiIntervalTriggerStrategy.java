@@ -44,7 +44,7 @@ public class MultiIntervalTriggerStrategy implements TriggerStrategy {
     }
 
     @Override
-    public boolean check(long lastConsumeTimestamp, long changedCount) {
+    public boolean canTrigger(long lastConsumeTimestamp, long changedCount) {
         checkArgument(!triggerMap.isEmpty());
 
         long now = System.currentTimeMillis();

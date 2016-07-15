@@ -69,9 +69,7 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
         scheduledExecutorService.scheduleWithFixedDelay(() -> {
             synchronized (SimpleBufferTrigger.this) {
                 try {
-                    boolean triggerResult = triggerStrategy.check(lastConsumeTimestamp,
-                            counter.get());
-                    if (triggerResult) {
+                    if (triggerStrategy.canTrigger(lastConsumeTimestamp, counter.get())) {
                         lastConsumeTimestamp = currentTimeMillis();
                         doConsume();
                     }
@@ -174,6 +172,6 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
 
     public interface TriggerStrategy {
 
-        boolean check(long lastConsumeTimestamp, long changedCount);
+        boolean canTrigger(long lastConsumeTimestamp, long changedCount);
     }
 }

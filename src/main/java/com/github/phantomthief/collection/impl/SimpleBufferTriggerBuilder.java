@@ -3,10 +3,12 @@
  */
 package com.github.phantomthief.collection.impl;
 
+import static com.github.phantomthief.collection.impl.SimpleBufferTrigger.TriggerStrategy.TriggerResult;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.util.Collections.newSetFromMap;
 import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
+import static java.util.concurrent.TimeUnit.DAYS;
 
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -175,7 +177,11 @@ public class SimpleBufferTriggerBuilder<E, C> {
 
     private void ensure() {
         checkNotNull(consumer);
-        checkNotNull(triggerStrategy);
+
+        if (triggerStrategy == null) {
+            logger.warn("no trigger strategy found. using NO-OP trigger");
+            triggerStrategy = (t, n) -> TriggerResult.next(false, 1, DAYS);
+        }
 
         if (bufferFactory == null && queueAdder == null) {
             bufferFactory = () -> (C) newSetFromMap(new ConcurrentHashMap<>());

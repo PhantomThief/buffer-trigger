@@ -13,6 +13,7 @@ import java.util.function.Supplier;
 import java.util.function.ToIntBiFunction;
 
 import com.github.phantomthief.collection.BufferTrigger;
+import com.github.phantomthief.collection.impl.SimpleBufferTrigger.TriggerStrategy;
 import com.github.phantomthief.util.ThrowableConsumer;
 
 /**
@@ -58,9 +59,23 @@ public class GenericSimpleBufferTriggerBuilder<E, C> {
         return this;
     }
 
+    public GenericSimpleBufferTriggerBuilder<E, C>
+            triggerStrategy(TriggerStrategy triggerStrategy) {
+        builder.triggerStrategy(triggerStrategy);
+        return this;
+    }
+
+    /**
+     * use {@link #interval(long, TimeUnit)} or {@link #triggerStrategy}
+     */
+    @Deprecated
     public GenericSimpleBufferTriggerBuilder<E, C> on(long interval, TimeUnit unit, long count) {
         builder.on(interval, unit, count);
         return this;
+    }
+
+    public GenericSimpleBufferTriggerBuilder<E, C> interval(long interval, TimeUnit unit) {
+        return on(interval, unit, 1);
     }
 
     public GenericSimpleBufferTriggerBuilder<E, C>

@@ -5,6 +5,7 @@ package com.github.phantomthief.collection.impl;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static java.lang.System.currentTimeMillis;
 import static java.util.Collections.newSetFromMap;
 import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -17,6 +18,7 @@ import java.util.function.BiConsumer;
 import java.util.function.BiPredicate;
 import java.util.function.Consumer;
 import java.util.function.LongConsumer;
+import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 import java.util.function.ToIntBiFunction;
 
@@ -121,7 +123,14 @@ public class SimpleBufferTriggerBuilder<E, C> {
     }
 
     public SimpleBufferTriggerBuilder<E, C> interval(long interval, TimeUnit unit) {
-        return on(interval, unit, 1);
+        long intervalInMs = unit.toMillis(interval);
+        return interval(() -> intervalInMs);
+    }
+
+    public SimpleBufferTriggerBuilder<E, C> interval(LongSupplier intervalInMs) {
+        this.triggerStrategy = (last, change) -> change > 0
+                && currentTimeMillis() - last >= intervalInMs.getAsLong();
+        return this;
     }
 
     public <E1, C1> SimpleBufferTriggerBuilder<E1, C1>

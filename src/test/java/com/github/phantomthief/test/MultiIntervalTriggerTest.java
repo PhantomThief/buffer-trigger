@@ -52,8 +52,8 @@ public class MultiIntervalTriggerTest {
     public void testInvalidBuild() {
         try {
             SimpleBufferTrigger.<Integer, Set<Interner>> newGenericBuilder() //
-                    .interval(1, SECONDS) //
-                    .interval(2, SECONDS) //
+                    .on(1, SECONDS, 1) //
+                    .on(2, SECONDS, 2) //
                     .consumer(set -> {
                         System.out.println("size:" + set.size());
                     }) //

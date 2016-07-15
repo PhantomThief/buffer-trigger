@@ -9,6 +9,7 @@ import java.util.function.BiConsumer;
 import java.util.function.BiPredicate;
 import java.util.function.Consumer;
 import java.util.function.LongConsumer;
+import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 import java.util.function.ToIntBiFunction;
 
@@ -80,7 +81,13 @@ public class GenericSimpleBufferTriggerBuilder<E, C> {
     }
 
     public GenericSimpleBufferTriggerBuilder<E, C> interval(long interval, TimeUnit unit) {
-        return on(interval, unit, 1);
+        builder.interval(interval, unit);
+        return this;
+    }
+
+    public GenericSimpleBufferTriggerBuilder<E, C> interval(LongSupplier intervalInMs) {
+        builder.interval(intervalInMs);
+        return this;
     }
 
     public GenericSimpleBufferTriggerBuilder<E, C>

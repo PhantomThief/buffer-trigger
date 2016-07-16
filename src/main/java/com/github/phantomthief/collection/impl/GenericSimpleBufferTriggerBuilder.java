@@ -8,11 +8,12 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.BiPredicate;
 import java.util.function.Consumer;
-import java.util.function.LongConsumer;
+import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 import java.util.function.ToIntBiFunction;
 
 import com.github.phantomthief.collection.BufferTrigger;
+import com.github.phantomthief.collection.impl.SimpleBufferTrigger.TriggerStrategy;
 import com.github.phantomthief.util.ThrowableConsumer;
 
 /**
@@ -58,8 +59,33 @@ public class GenericSimpleBufferTriggerBuilder<E, C> {
         return this;
     }
 
+    public GenericSimpleBufferTriggerBuilder<E, C> tickTime(long time, TimeUnit unit) {
+        builder.tickTime(time, unit);
+        return this;
+    }
+
+    public GenericSimpleBufferTriggerBuilder<E, C>
+            triggerStrategy(TriggerStrategy triggerStrategy) {
+        builder.triggerStrategy(triggerStrategy);
+        return this;
+    }
+
+    /**
+     * use {@link #interval(long, TimeUnit)} or {@link #triggerStrategy}
+     */
+    @Deprecated
     public GenericSimpleBufferTriggerBuilder<E, C> on(long interval, TimeUnit unit, long count) {
         builder.on(interval, unit, count);
+        return this;
+    }
+
+    public GenericSimpleBufferTriggerBuilder<E, C> interval(long interval, TimeUnit unit) {
+        builder.interval(interval, unit);
+        return this;
+    }
+
+    public GenericSimpleBufferTriggerBuilder<E, C> interval(LongSupplier intervalInMs) {
+        builder.interval(intervalInMs);
         return this;
     }
 
@@ -83,12 +109,6 @@ public class GenericSimpleBufferTriggerBuilder<E, C> {
     public GenericSimpleBufferTriggerBuilder<E, C>
             rejectHandler(Consumer<? super E> rejectHandler) {
         builder.rejectHandler(rejectHandler);
-        return this;
-    }
-
-    public GenericSimpleBufferTriggerBuilder<E, C> warningThreshold(long threshold,
-            LongConsumer handler) {
-        builder.warningThreshold(threshold, handler);
         return this;
     }
 

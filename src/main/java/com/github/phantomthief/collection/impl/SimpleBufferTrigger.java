@@ -1,15 +1,15 @@
 /**
- * 
+ *
  */
 package com.github.phantomthief.collection.impl;
 
+import static java.lang.System.currentTimeMillis;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.locks.ReentrantReadWriteLock.ReadLock;
 import static java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
 import static org.slf4j.LoggerFactory.getLogger;
 
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
@@ -17,7 +17,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
-import java.util.function.LongConsumer;
 import java.util.function.Supplier;
 import java.util.function.ToIntBiFunction;
 
@@ -31,16 +30,7 @@ import com.github.phantomthief.util.ThrowableConsumer;
  */
 public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
 
-    static Logger logger = getLogger(SimpleBufferTrigger.class);
-
-    /**
-     * trigger like redis's rdb
-     * 
-     * save 900 1
-     * save 300 10
-     * save 60 10000
-     * 
-     */
+    private static final Logger logger = getLogger(SimpleBufferTrigger.class);
 
     private final AtomicLong counter = new AtomicLong();
     private final ThrowableConsumer<Object, Throwable> consumer;
@@ -49,40 +39,39 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
     private final BiConsumer<Throwable, Object> exceptionHandler;
     private final AtomicReference<Object> buffer = new AtomicReference<>();
     private final long maxBufferCount;
-    private final long warningBufferThreshold;
-    private final LongConsumer warningBufferHandler;
     private final Consumer<E> rejectHandler;
     private final ReadLock readLock;
     private final WriteLock writeLock;
 
+    private volatile long lastConsumeTimestamp = System.currentTimeMillis();
+
     SimpleBufferTrigger(Supplier<Object> bufferFactory, ToIntBiFunction<Object, E> queueAdder,
             ScheduledExecutorService scheduledExecutorService,
-            ThrowableConsumer<Object, Throwable> consumer, Map<Long, Long> triggerMap,
-            BiConsumer<Throwable, Object> exceptionHandler, long maxBufferCount,
-            Consumer<E> rejectHandler, long warningBufferThreshold,
-            LongConsumer warningBufferHandler) {
+            ThrowableConsumer<Object, Throwable> consumer, long tickTime,
+            TriggerStrategy triggerStrategy, BiConsumer<Throwable, Object> exceptionHandler,
+            long maxBufferCount, Consumer<E> rejectHandler) {
         this.queueAdder = queueAdder;
         this.bufferFactory = bufferFactory;
         this.consumer = consumer;
         this.exceptionHandler = exceptionHandler;
         this.maxBufferCount = maxBufferCount;
         this.rejectHandler = rejectHandler;
-        this.warningBufferHandler = warningBufferHandler;
-        this.warningBufferThreshold = warningBufferThreshold;
         this.buffer.set(this.bufferFactory.get());
         ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
         readLock = lock.readLock();
         writeLock = lock.writeLock();
-        for (Entry<Long, Long> entry : triggerMap.entrySet()) {
-            scheduledExecutorService.scheduleWithFixedDelay(() -> {
-                synchronized (SimpleBufferTrigger.this) {
-                    if (counter.get() < entry.getValue()) {
-                        return;
+        scheduledExecutorService.scheduleWithFixedDelay(() -> {
+            synchronized (SimpleBufferTrigger.this) {
+                try {
+                    if (triggerStrategy.canTrigger(lastConsumeTimestamp, counter.get())) {
+                        lastConsumeTimestamp = currentTimeMillis();
+                        doConsume();
                     }
-                    doConsume();
+                } catch (Throwable e) {
+                    logger.error("", e);
                 }
-            }, entry.getKey(), entry.getKey(), MILLISECONDS);
-        }
+            }
+        }, tickTime, tickTime, MILLISECONDS);
     }
 
     public static SimpleBufferTriggerBuilder<Object, Object> newBuilder() {
@@ -104,11 +93,6 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
     @Override
     public void enqueue(E element) {
         long currentCount = counter.get();
-        if (warningBufferThreshold > 0 && maxBufferCount > 0 && warningBufferHandler != null) {
-            if (currentCount >= warningBufferThreshold) {
-                warningBufferHandler.accept(currentCount);
-            }
-        }
         if (maxBufferCount > 0 && currentCount >= maxBufferCount) {
             if (rejectHandler != null) {
                 rejectHandler.accept(element);
@@ -173,5 +157,10 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
     @Override
     public long getPendingChanges() {
         return counter.get();
+    }
+
+    public interface TriggerStrategy {
+
+        boolean canTrigger(long lastConsumeTimestamp, long changedCount);
     }
 }

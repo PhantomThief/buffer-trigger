@@ -5,12 +5,11 @@ package com.github.phantomthief.collection.impl;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
-import static java.lang.Math.max;
+import static java.lang.System.currentTimeMillis;
 import static java.util.Collections.newSetFromMap;
-import static java.util.concurrent.Executors.newScheduledThreadPool;
+import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
+import static java.util.concurrent.TimeUnit.SECONDS;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledExecutorService;
@@ -18,18 +17,26 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.BiPredicate;
 import java.util.function.Consumer;
-import java.util.function.LongConsumer;
+import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 import java.util.function.ToIntBiFunction;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.github.phantomthief.collection.BufferTrigger;
+import com.github.phantomthief.collection.impl.SimpleBufferTrigger.TriggerStrategy;
 import com.github.phantomthief.util.ThrowableConsumer;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 @SuppressWarnings("unchecked")
 public class SimpleBufferTriggerBuilder<E, C> {
 
-    private final Map<Long, Long> triggerMap = new HashMap<>();
+    private static final Logger logger = LoggerFactory.getLogger(SimpleBufferTriggerBuilder.class);
+    private static final long DEFAULT_TICK_TIME = SECONDS.toMillis(1);
+
+    private long tickTime;
+    private TriggerStrategy triggerStrategy;
     private ScheduledExecutorService scheduledExecutorService;
     private Supplier<C> bufferFactory;
     private ToIntBiFunction<C, E> queueAdder;
@@ -37,8 +44,6 @@ public class SimpleBufferTriggerBuilder<E, C> {
     private BiConsumer<Throwable, C> exceptionHandler;
     private long maxBufferCount = -1;
     private Consumer<E> rejectHandler;
-    private long warningBufferThreshold;
-    private LongConsumer warningBufferHandler;
 
     /**
      * <b>warning:</b> the container must be thread-safed.
@@ -73,6 +78,11 @@ public class SimpleBufferTriggerBuilder<E, C> {
         return thisBuilder;
     }
 
+    public SimpleBufferTriggerBuilder<E, C> tickTime(long time, TimeUnit unit) {
+        this.tickTime = unit.toMillis(time);
+        return this;
+    }
+
     public SimpleBufferTriggerBuilder<E, C>
             setScheduleExecutorService(ScheduledExecutorService scheduledExecutorService) {
         this.scheduledExecutorService = scheduledExecutorService;
@@ -86,8 +96,37 @@ public class SimpleBufferTriggerBuilder<E, C> {
         return thisBuilder;
     }
 
+    public SimpleBufferTriggerBuilder<E, C> triggerStrategy(TriggerStrategy triggerStrategy) {
+        this.triggerStrategy = triggerStrategy;
+        return this;
+    }
+
+    /**
+     * use {@link #interval(long, TimeUnit)} or {@link #triggerStrategy}
+     */
+    @Deprecated
     public SimpleBufferTriggerBuilder<E, C> on(long interval, TimeUnit unit, long count) {
-        triggerMap.put(unit.toMillis(interval), count);
+        if (triggerStrategy == null) {
+            triggerStrategy = new MultiIntervalTriggerStrategy();
+        }
+        if (triggerStrategy instanceof MultiIntervalTriggerStrategy) {
+            ((MultiIntervalTriggerStrategy) triggerStrategy).on(interval, unit, count);
+        } else {
+            logger.warn(
+                    "exists non multi interval trigger strategy found. ignore setting:{},{}->{}",
+                    interval, unit, count);
+        }
+        return this;
+    }
+
+    public SimpleBufferTriggerBuilder<E, C> interval(long interval, TimeUnit unit) {
+        long intervalInMs = unit.toMillis(interval);
+        return interval(() -> intervalInMs);
+    }
+
+    public SimpleBufferTriggerBuilder<E, C> interval(LongSupplier intervalInMs) {
+        this.triggerStrategy = (last, change) -> change > 0
+                && currentTimeMillis() - last >= intervalInMs.getAsLong();
         return this;
     }
 
@@ -129,50 +168,39 @@ public class SimpleBufferTriggerBuilder<E, C> {
         return thisBuilder;
     }
 
-    public SimpleBufferTriggerBuilder<E, C> warningThreshold(long threshold, LongConsumer handler) {
-        checkNotNull(handler);
-        checkArgument(threshold > 0);
-
-        this.warningBufferHandler = handler;
-        this.warningBufferThreshold = threshold;
-        return this;
-    }
-
     public <E1> BufferTrigger<E1> build() {
         return new LazyBufferTrigger<>(() -> {
             ensure();
             return new SimpleBufferTrigger<>((Supplier<Object>) bufferFactory,
                     (ToIntBiFunction<Object, E1>) queueAdder, scheduledExecutorService,
-                    (ThrowableConsumer<Object, Throwable>) consumer, triggerMap,
+                    (ThrowableConsumer<Object, Throwable>) consumer, tickTime, triggerStrategy,
                     (BiConsumer<Throwable, Object>) exceptionHandler, maxBufferCount,
-                    (Consumer<E1>) rejectHandler, warningBufferThreshold, warningBufferHandler);
+                    (Consumer<E1>) rejectHandler);
         });
     }
 
     private void ensure() {
         checkNotNull(consumer);
 
+        if (tickTime <= 0) {
+            tickTime = DEFAULT_TICK_TIME;
+        }
+        if (triggerStrategy == null) {
+            logger.warn("no trigger strategy found. using NO-OP trigger");
+            triggerStrategy = (t, n) -> false;
+        }
+
         if (bufferFactory == null && queueAdder == null) {
             bufferFactory = () -> (C) newSetFromMap(new ConcurrentHashMap<>());
             queueAdder = (c, e) -> ((Set<E>) c).add(e) ? 1 : 0;
         }
-        if (!triggerMap.isEmpty() && scheduledExecutorService == null) {
+        if (scheduledExecutorService == null) {
             scheduledExecutorService = makeScheduleExecutor();
-        }
-        if (maxBufferCount > 0 && warningBufferThreshold > 0) {
-            if (warningBufferThreshold >= maxBufferCount) {
-                SimpleBufferTrigger.logger.warn(
-                        "invalid warning threshold:{}, it shouldn't be larger than maxBufferSize. ignore warning threshold.",
-                        warningBufferThreshold);
-                warningBufferThreshold = 0;
-                warningBufferHandler = null;
-            }
         }
     }
 
     private ScheduledExecutorService makeScheduleExecutor() {
-
-        return newScheduledThreadPool(max(1, triggerMap.size()),
+        return newSingleThreadScheduledExecutor(
                 new ThreadFactoryBuilder().setNameFormat("pool-simple-buffer-trigger-thread-%d") //
                         .setDaemon(true) //
                         .build());

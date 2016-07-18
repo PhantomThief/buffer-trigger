@@ -120,13 +120,12 @@ public class SimpleBufferTriggerBuilder<E, C> {
     }
 
     public SimpleBufferTriggerBuilder<E, C> interval(long interval, TimeUnit unit) {
-        long intervalInMs = unit.toMillis(interval);
-        return interval(() -> intervalInMs);
+        return interval(() -> interval, unit);
     }
 
-    public SimpleBufferTriggerBuilder<E, C> interval(LongSupplier intervalInMs) {
+    public SimpleBufferTriggerBuilder<E, C> interval(LongSupplier interval, TimeUnit unit) {
         this.triggerStrategy = (last, change) -> change > 0
-                && currentTimeMillis() - last >= intervalInMs.getAsLong();
+                && currentTimeMillis() - last >= unit.toMillis(interval.getAsLong());
         return this;
     }
 

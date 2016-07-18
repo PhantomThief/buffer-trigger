@@ -84,8 +84,8 @@ public class GenericSimpleBufferTriggerBuilder<E, C> {
         return this;
     }
 
-    public GenericSimpleBufferTriggerBuilder<E, C> interval(LongSupplier intervalInMs) {
-        builder.interval(intervalInMs);
+    public GenericSimpleBufferTriggerBuilder<E, C> interval(LongSupplier interval, TimeUnit unit) {
+        builder.interval(interval, unit);
         return this;
     }
 

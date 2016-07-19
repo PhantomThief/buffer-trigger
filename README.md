@@ -3,7 +3,7 @@ buffer-trigger [![Build Status](https://travis-ci.org/PhantomThief/buffer-trigge
 
 A local data buffer with customizable data trigger
 
-* multiple data trigger
+* customize trigger strategy
 * buffer container can be customized
 * jdk1.8 only
 
@@ -13,7 +13,7 @@ A local data buffer with customizable data trigger
 <dependency>
     <groupId>com.github.phantomthief</groupId>
     <artifactId>buffer-trigger</artifactId>
-    <version>0.2.6-SNAPSHOT</version>
+    <version>0.2.7-SNAPSHOT</version>
 </dependency>
 ```
 
@@ -23,9 +23,11 @@ A local data buffer with customizable data trigger
 
 // declare
 BufferTrigger<String> buffer = SimpleBufferTrigger.<String, Set<String>> newBuilder() //
-        .on(3, TimeUnit.SECONDS, 1) //
-        .on(2, TimeUnit.SECONDS, 10) //
-        .on(1, TimeUnit.SECONDS, 10000) //
+        .triggerStrategy(new MultiIntervalTriggerStrategy() //
+            .on(10, SECONDS, 1) //
+            .on(5, SECONDS, 10) //
+            .on(1, SECONDS, 100) //
+        ) //
         .consumer(this::out) //
         .setContainer(ConcurrentSkipListSet::new, Set::add) // default is Collections.newSetFromMap(new ConcurrentHashMap<>())
         .build();

@@ -12,6 +12,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.Test;
 
 import com.github.phantomthief.collection.BufferTrigger;
+import com.github.phantomthief.collection.impl.MultiIntervalTriggerStrategy;
 import com.github.phantomthief.collection.impl.SimpleBufferTrigger;
 import com.google.common.collect.Interner;
 
@@ -26,9 +27,11 @@ public class MultiIntervalTriggerTest {
         AtomicInteger assertSize = new AtomicInteger();
         BufferTrigger<Integer> bufferTrigger = SimpleBufferTrigger
                 .<Integer, Set<Interner>> newGenericBuilder() //
-                .on(10, SECONDS, 1) //
-                .on(5, SECONDS, 10) //
-                .on(1, SECONDS, 100) //
+                .triggerStrategy(new MultiIntervalTriggerStrategy() //
+                        .on(10, SECONDS, 1) //
+                        .on(5, SECONDS, 10) //
+                        .on(1, SECONDS, 100) //
+                ) //
                 .consumer(set -> {
                     System.out.println("size:" + set.size());
                     assertEquals(set.size(), assertSize.get());
@@ -52,11 +55,11 @@ public class MultiIntervalTriggerTest {
     public void testInvalidBuild() {
         try {
             SimpleBufferTrigger.<Integer, Set<Interner>> newGenericBuilder() //
-                    .on(1, SECONDS, 1) //
-                    .on(2, SECONDS, 2) //
-                    .consumer(set -> {
-                        System.out.println("size:" + set.size());
-                    }) //
+                    .triggerStrategy(new MultiIntervalTriggerStrategy() //
+                            .on(1, SECONDS, 1) //
+                            .on(2, SECONDS, 2) //
+                    ) //
+                    .consumer(set -> System.out.println("size:" + set.size())) //
                     .build();
             fail();
         } catch (IllegalArgumentException e) {

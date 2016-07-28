@@ -11,6 +11,7 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 import com.github.phantomthief.collection.BufferTrigger;
+import com.github.phantomthief.util.ThrowableConsumer;
 
 /**
  * @author w.vela
@@ -49,8 +50,18 @@ public class GenericBatchConsumerTriggerBuilder<E> {
         return this;
     }
 
+    /**
+     * use {@link #setConsumerEx}
+     */
+    @Deprecated
     public GenericBatchConsumerTriggerBuilder<E> setConsumer(Consumer<? super List<E>> consumer) {
         builder.setConsumer(consumer);
+        return this;
+    }
+
+    public GenericBatchConsumerTriggerBuilder<E>
+            setConsumerEx(ThrowableConsumer<? super List<E>, Exception> consumer) {
+        builder.setConsumerEx(consumer);
         return this;
     }
 

@@ -12,11 +12,11 @@ import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 
 import org.slf4j.Logger;
 
 import com.github.phantomthief.collection.BufferTrigger;
+import com.github.phantomthief.util.ThrowableConsumer;
 
 /**
  * @author w.vela
@@ -27,12 +27,13 @@ public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
 
     private final int batchConsumerSize;
     private final BlockingQueue<E> queue;
-    private final Consumer<List<E>> consumer;
+    private final ThrowableConsumer<List<E>, Exception> consumer;
     private final BiConsumer<Throwable, List<E>> exceptionHandler;
 
     BatchConsumeBlockingQueueTrigger(boolean forceConsumeEveryTick, int batchConsumerSize,
             BlockingQueue<E> queue, BiConsumer<Throwable, List<E>> exceptionHandler,
-            Consumer<List<E>> consumer, ScheduledExecutorService scheduledExecutorService,
+            ThrowableConsumer<List<E>, Exception> consumer,
+            ScheduledExecutorService scheduledExecutorService,
             long tickTime) {
         this.batchConsumerSize = batchConsumerSize;
         this.queue = queue;

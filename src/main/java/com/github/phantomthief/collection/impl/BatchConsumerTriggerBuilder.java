@@ -18,6 +18,7 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 import com.github.phantomthief.collection.BufferTrigger;
+import com.github.phantomthief.util.ThrowableConsumer;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 @SuppressWarnings({ "unchecked", "rawtypes" })
@@ -31,7 +32,7 @@ public final class BatchConsumerTriggerBuilder<E> {
     private boolean forceConsumeEveryTick;
     private int batchConsumerSize;
     private BlockingQueue<E> queue;
-    private Consumer<List<E>> consumer;
+    private ThrowableConsumer<List<E>, Exception> consumer;
     private BiConsumer<Throwable, List<E>> exceptionHandler;
 
     public BatchConsumerTriggerBuilder<E> forceConsumeEveryTick() {
@@ -61,9 +62,20 @@ public final class BatchConsumerTriggerBuilder<E> {
         return thisBuilder;
     }
 
+    /**
+     * use {@link #setConsumerEx}
+     */
+    @Deprecated
     public <E1> BatchConsumerTriggerBuilder<E1> setConsumer(Consumer<? super List<E1>> consumer) {
         BatchConsumerTriggerBuilder<E1> thisBuilder = (BatchConsumerTriggerBuilder<E1>) this;
-        thisBuilder.consumer = (Consumer) consumer;
+        thisBuilder.consumer = consumer::accept;
+        return thisBuilder;
+    }
+
+    public <E1> BatchConsumerTriggerBuilder<E1>
+            setConsumerEx(ThrowableConsumer<? super List<E1>, Exception> consumer) {
+        BatchConsumerTriggerBuilder<E1> thisBuilder = (BatchConsumerTriggerBuilder<E1>) this;
+        thisBuilder.consumer = consumer::accept;
         return thisBuilder;
     }
 

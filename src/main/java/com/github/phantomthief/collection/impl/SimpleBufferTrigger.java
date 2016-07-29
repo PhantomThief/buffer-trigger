@@ -106,17 +106,16 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
         } catch (Throwable e) {
             // ignore lock failed
         }
-        int changedCount;
         try {
             Object thisBuffer = buffer.get();
-            changedCount = queueAdder.applyAsInt(thisBuffer, element);
+            int changedCount = queueAdder.applyAsInt(thisBuffer, element);
+            if (changedCount > 0) {
+                counter.addAndGet(changedCount);
+            }
         } finally {
             if (locked) {
                 readLock.unlock();
             }
-        }
-        if (changedCount > 0) {
-            counter.addAndGet(changedCount);
         }
     }
 
@@ -134,9 +133,9 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
             try {
                 old = buffer.getAndSet(bufferFactory.get());
             } finally {
+                counter.set(0);
                 writeLock.unlock();
             }
-            counter.set(0);
             if (old != null) {
                 consumer.accept(old);
             }

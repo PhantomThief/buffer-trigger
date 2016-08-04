@@ -35,7 +35,7 @@ public class SimpleBufferTriggerBuilder<E, C> {
     private static final Logger logger = LoggerFactory.getLogger(SimpleBufferTriggerBuilder.class);
     private static final long DEFAULT_TICK_TIME = SECONDS.toMillis(1);
 
-    private long tickTime;
+    private long tickTime = DEFAULT_TICK_TIME;
     private TriggerStrategy triggerStrategy;
     private ScheduledExecutorService scheduledExecutorService;
     private Supplier<C> bufferFactory;
@@ -120,6 +120,9 @@ public class SimpleBufferTriggerBuilder<E, C> {
     }
 
     public SimpleBufferTriggerBuilder<E, C> interval(long interval, TimeUnit unit) {
+        if (unit.toMillis(interval) < tickTime) {
+            tickTime(interval, unit);
+        }
         return interval(() -> interval, unit);
     }
 
@@ -180,10 +183,8 @@ public class SimpleBufferTriggerBuilder<E, C> {
 
     private void ensure() {
         checkNotNull(consumer);
+        checkArgument(tickTime > 0);
 
-        if (tickTime <= 0) {
-            tickTime = DEFAULT_TICK_TIME;
-        }
         if (triggerStrategy == null) {
             logger.warn("no trigger strategy found. using NO-OP trigger");
             triggerStrategy = (t, n) -> false;

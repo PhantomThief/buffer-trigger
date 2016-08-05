@@ -59,11 +59,6 @@ public class GenericSimpleBufferTriggerBuilder<E, C> {
         return this;
     }
 
-    public GenericSimpleBufferTriggerBuilder<E, C> tickTime(long time, TimeUnit unit) {
-        builder.tickTime(time, unit);
-        return this;
-    }
-
     public GenericSimpleBufferTriggerBuilder<E, C>
             triggerStrategy(TriggerStrategy triggerStrategy) {
         builder.triggerStrategy(triggerStrategy);

@@ -1,5 +1,6 @@
 package com.github.phantomthief.collection.impl;
 
+import static com.github.phantomthief.collection.impl.SimpleBufferTrigger.TriggerResult.trig;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import java.util.Map.Entry;
@@ -7,6 +8,7 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
 
+import com.github.phantomthief.collection.impl.SimpleBufferTrigger.TriggerResult;
 import com.github.phantomthief.collection.impl.SimpleBufferTrigger.TriggerStrategy;
 
 /**
@@ -21,10 +23,13 @@ import com.github.phantomthief.collection.impl.SimpleBufferTrigger.TriggerStrate
  */
 public class MultiIntervalTriggerStrategy implements TriggerStrategy {
 
+    private long minTriggerPeriod = Long.MAX_VALUE;
     private final SortedMap<Long, Long> triggerMap = new TreeMap<>();
 
     public MultiIntervalTriggerStrategy on(long interval, TimeUnit unit, long count) {
-        triggerMap.put(unit.toMillis(interval), count);
+        long intervalInMs = unit.toMillis(interval);
+        minTriggerPeriod = Math.min(intervalInMs, minTriggerPeriod);
+        triggerMap.put(intervalInMs, count);
         checkTriggerMap();
         return this;
     }
@@ -44,8 +49,10 @@ public class MultiIntervalTriggerStrategy implements TriggerStrategy {
     }
 
     @Override
-    public boolean canTrigger(long lastConsumeTimestamp, long changedCount) {
+    public TriggerResult canTrigger(long lastConsumeTimestamp, long changedCount) {
         checkArgument(!triggerMap.isEmpty());
+
+        boolean doConsumer = false;
 
         long now = System.currentTimeMillis();
 
@@ -54,9 +61,10 @@ public class MultiIntervalTriggerStrategy implements TriggerStrategy {
                 continue;
             }
             if (changedCount >= entry.getValue()) {
-                return true;
+                doConsumer = true;
+                break;
             }
         }
-        return false;
+        return trig(doConsumer, minTriggerPeriod);
     }
 }

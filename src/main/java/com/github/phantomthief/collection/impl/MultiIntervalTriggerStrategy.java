@@ -2,6 +2,8 @@ package com.github.phantomthief.collection.impl;
 
 import static com.github.phantomthief.collection.impl.SimpleBufferTrigger.TriggerResult.trig;
 import static com.google.common.base.Preconditions.checkArgument;
+import static java.lang.Math.abs;
+import static java.lang.Math.min;
 
 import java.util.Map.Entry;
 import java.util.SortedMap;
@@ -28,15 +30,27 @@ public class MultiIntervalTriggerStrategy implements TriggerStrategy {
 
     public MultiIntervalTriggerStrategy on(long interval, TimeUnit unit, long count) {
         long intervalInMs = unit.toMillis(interval);
-        minTriggerPeriod = Math.min(intervalInMs, minTriggerPeriod);
         triggerMap.put(intervalInMs, count);
-        checkTriggerMap();
+        minTriggerPeriod = checkAndCalcMinPeriod();
         return this;
     }
 
-    private void checkTriggerMap() {
+    long minTriggerPeriod() { // for test case
+        return minTriggerPeriod;
+    }
+
+    private long checkAndCalcMinPeriod() {
+        long minPeriod = Long.MAX_VALUE;
         Long maxTrigChangeCount = null;
-        for (Long trigChangedCount : triggerMap.values()) {
+        long lastPeriod = 0;
+
+        for (Entry<Long, Long> entry : triggerMap.entrySet()) {
+            long period = entry.getKey();
+            minPeriod = min(minPeriod, period);
+            if (lastPeriod > 0) {
+                minPeriod = min(minPeriod, abs(lastPeriod - period));
+            }
+            long trigChangedCount = entry.getValue();
             if (maxTrigChangeCount == null) {
                 maxTrigChangeCount = trigChangedCount;
             } else {
@@ -45,7 +59,9 @@ public class MultiIntervalTriggerStrategy implements TriggerStrategy {
                             "found invalid trigger setting:" + triggerMap);
                 }
             }
+            lastPeriod = period;
         }
+        return minPeriod;
     }
 
     @Override

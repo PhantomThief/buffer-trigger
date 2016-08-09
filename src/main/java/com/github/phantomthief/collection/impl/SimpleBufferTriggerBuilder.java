@@ -3,12 +3,13 @@
  */
 package com.github.phantomthief.collection.impl;
 
+import static com.github.phantomthief.collection.impl.SimpleBufferTrigger.TriggerResult.empty;
+import static com.github.phantomthief.collection.impl.SimpleBufferTrigger.TriggerResult.trig;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.lang.System.currentTimeMillis;
 import static java.util.Collections.newSetFromMap;
 import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
-import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -33,9 +34,7 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 public class SimpleBufferTriggerBuilder<E, C> {
 
     private static final Logger logger = LoggerFactory.getLogger(SimpleBufferTriggerBuilder.class);
-    private static final long DEFAULT_TICK_TIME = SECONDS.toMillis(1);
 
-    private long tickTime = DEFAULT_TICK_TIME;
     private TriggerStrategy triggerStrategy;
     private ScheduledExecutorService scheduledExecutorService;
     private Supplier<C> bufferFactory;
@@ -78,11 +77,6 @@ public class SimpleBufferTriggerBuilder<E, C> {
         return thisBuilder;
     }
 
-    public SimpleBufferTriggerBuilder<E, C> tickTime(long time, TimeUnit unit) {
-        this.tickTime = unit.toMillis(time);
-        return this;
-    }
-
     public SimpleBufferTriggerBuilder<E, C>
             setScheduleExecutorService(ScheduledExecutorService scheduledExecutorService) {
         this.scheduledExecutorService = scheduledExecutorService;
@@ -120,15 +114,14 @@ public class SimpleBufferTriggerBuilder<E, C> {
     }
 
     public SimpleBufferTriggerBuilder<E, C> interval(long interval, TimeUnit unit) {
-        if (unit.toMillis(interval) < tickTime) {
-            tickTime(interval, unit);
-        }
         return interval(() -> interval, unit);
     }
 
     public SimpleBufferTriggerBuilder<E, C> interval(LongSupplier interval, TimeUnit unit) {
-        this.triggerStrategy = (last, change) -> change > 0
-                && currentTimeMillis() - last >= unit.toMillis(interval.getAsLong());
+        this.triggerStrategy = (last, change) -> {
+            long intervalInMs = unit.toMillis(interval.getAsLong());
+            return trig(change > 0 && currentTimeMillis() - last >= intervalInMs, intervalInMs);
+        };
         return this;
     }
 
@@ -175,7 +168,7 @@ public class SimpleBufferTriggerBuilder<E, C> {
             ensure();
             return new SimpleBufferTrigger<>((Supplier<Object>) bufferFactory,
                     (ToIntBiFunction<Object, E1>) queueAdder, scheduledExecutorService,
-                    (ThrowableConsumer<Object, Throwable>) consumer, tickTime, triggerStrategy,
+                    (ThrowableConsumer<Object, Throwable>) consumer, triggerStrategy,
                     (BiConsumer<Throwable, Object>) exceptionHandler, maxBufferCount,
                     (Consumer<E1>) rejectHandler);
         });
@@ -183,11 +176,10 @@ public class SimpleBufferTriggerBuilder<E, C> {
 
     private void ensure() {
         checkNotNull(consumer);
-        checkArgument(tickTime > 0);
 
         if (triggerStrategy == null) {
             logger.warn("no trigger strategy found. using NO-OP trigger");
-            triggerStrategy = (t, n) -> false;
+            triggerStrategy = (t, n) -> empty();
         }
 
         if (bufferFactory == null && queueAdder == null) {

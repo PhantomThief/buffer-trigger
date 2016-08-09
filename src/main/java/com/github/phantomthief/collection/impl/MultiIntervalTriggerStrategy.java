@@ -1,12 +1,16 @@
 package com.github.phantomthief.collection.impl;
 
+import static com.github.phantomthief.collection.impl.SimpleBufferTrigger.TriggerResult.trig;
 import static com.google.common.base.Preconditions.checkArgument;
+import static java.lang.Math.abs;
+import static java.lang.Math.min;
 
 import java.util.Map.Entry;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
 
+import com.github.phantomthief.collection.impl.SimpleBufferTrigger.TriggerResult;
 import com.github.phantomthief.collection.impl.SimpleBufferTrigger.TriggerStrategy;
 
 /**
@@ -21,17 +25,32 @@ import com.github.phantomthief.collection.impl.SimpleBufferTrigger.TriggerStrate
  */
 public class MultiIntervalTriggerStrategy implements TriggerStrategy {
 
+    private long minTriggerPeriod = Long.MAX_VALUE;
     private final SortedMap<Long, Long> triggerMap = new TreeMap<>();
 
     public MultiIntervalTriggerStrategy on(long interval, TimeUnit unit, long count) {
-        triggerMap.put(unit.toMillis(interval), count);
-        checkTriggerMap();
+        long intervalInMs = unit.toMillis(interval);
+        triggerMap.put(intervalInMs, count);
+        minTriggerPeriod = checkAndCalcMinPeriod();
         return this;
     }
 
-    private void checkTriggerMap() {
+    long minTriggerPeriod() { // for test case
+        return minTriggerPeriod;
+    }
+
+    private long checkAndCalcMinPeriod() {
+        long minPeriod = Long.MAX_VALUE;
         Long maxTrigChangeCount = null;
-        for (Long trigChangedCount : triggerMap.values()) {
+        long lastPeriod = 0;
+
+        for (Entry<Long, Long> entry : triggerMap.entrySet()) {
+            long period = entry.getKey();
+            minPeriod = min(minPeriod, period);
+            if (lastPeriod > 0) {
+                minPeriod = min(minPeriod, abs(lastPeriod - period));
+            }
+            long trigChangedCount = entry.getValue();
             if (maxTrigChangeCount == null) {
                 maxTrigChangeCount = trigChangedCount;
             } else {
@@ -40,12 +59,16 @@ public class MultiIntervalTriggerStrategy implements TriggerStrategy {
                             "found invalid trigger setting:" + triggerMap);
                 }
             }
+            lastPeriod = period;
         }
+        return minPeriod;
     }
 
     @Override
-    public boolean canTrigger(long lastConsumeTimestamp, long changedCount) {
+    public TriggerResult canTrigger(long lastConsumeTimestamp, long changedCount) {
         checkArgument(!triggerMap.isEmpty());
+
+        boolean doConsumer = false;
 
         long now = System.currentTimeMillis();
 
@@ -54,9 +77,10 @@ public class MultiIntervalTriggerStrategy implements TriggerStrategy {
                 continue;
             }
             if (changedCount >= entry.getValue()) {
-                return true;
+                doConsumer = true;
+                break;
             }
         }
-        return false;
+        return trig(doConsumer, minTriggerPeriod);
     }
 }

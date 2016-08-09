@@ -47,7 +47,7 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
     private final ReadLock readLock;
     private final WriteLock writeLock;
 
-    private volatile long lastConsumeTimestamp = System.currentTimeMillis();
+    private volatile long lastConsumeTimestamp = currentTimeMillis();
 
     SimpleBufferTrigger(Supplier<Object> bufferFactory, ToIntBiFunction<Object, E> queueAdder,
             ScheduledExecutorService scheduledExecutorService,
@@ -197,16 +197,16 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
                     TriggerResult triggerResult = triggerStrategy.canTrigger(lastConsumeTimestamp,
                             counter.get());
                     nextTrigPeriod = triggerResult.nextPeriod;
+                    long beforeConsume = currentTimeMillis();
                     if (triggerResult.doConsumer) {
-                        lastConsumeTimestamp = currentTimeMillis();
+                        lastConsumeTimestamp = beforeConsume;
                         doConsume();
                     }
+                    nextTrigPeriod = nextTrigPeriod - (currentTimeMillis() - beforeConsume);
                 } catch (Throwable e) {
                     logger.error("", e);
                 }
-                if (nextTrigPeriod <= 0) { // invalid trigger period
-                    nextTrigPeriod = DEFAULT_NEXT_TRIGGER_PERIOD;
-                }
+                nextTrigPeriod = Math.max(0, nextTrigPeriod);
                 scheduledExecutorService.schedule(this, nextTrigPeriod, MILLISECONDS);
             }
         }

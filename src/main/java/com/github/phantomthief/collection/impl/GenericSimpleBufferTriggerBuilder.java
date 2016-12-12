@@ -23,7 +23,7 @@ public class GenericSimpleBufferTriggerBuilder<E, C> {
 
     private final SimpleBufferTriggerBuilder<Object, Object> builder;
 
-    GenericSimpleBufferTriggerBuilder(SimpleBufferTriggerBuilder<Object, Object> builder) {
+    public GenericSimpleBufferTriggerBuilder(SimpleBufferTriggerBuilder<Object, Object> builder) {
         this.builder = builder;
     }
 

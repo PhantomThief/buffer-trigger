@@ -20,7 +20,7 @@ public class GenericBatchConsumerTriggerBuilder<E> {
 
     private final BatchConsumerTriggerBuilder<Object> builder;
 
-    GenericBatchConsumerTriggerBuilder(BatchConsumerTriggerBuilder<Object> builder) {
+    public GenericBatchConsumerTriggerBuilder(BatchConsumerTriggerBuilder<Object> builder) {
         this.builder = builder;
     }
 

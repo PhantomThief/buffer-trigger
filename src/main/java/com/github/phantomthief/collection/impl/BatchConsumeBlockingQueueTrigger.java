@@ -66,6 +66,10 @@ public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
         }, tickTime, tickTime, MILLISECONDS);
     }
 
+    /**
+     * use {@link com.github.phantomthief.collection.BufferTrigger#newBatchConsumerTrigger} instead
+     */
+    @Deprecated
     public static BatchConsumerTriggerBuilder<Object> newBuilder() {
         return new BatchConsumerTriggerBuilder<>();
     }

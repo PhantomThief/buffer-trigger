@@ -69,10 +69,18 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
                 DEFAULT_NEXT_TRIGGER_PERIOD, MILLISECONDS);
     }
 
+    /**
+     * use {@link com.github.phantomthief.collection.BufferTrigger#newSimpleBufferTrigger} instead
+     */
+    @Deprecated
     public static SimpleBufferTriggerBuilder<Object, Object> newBuilder() {
         return new SimpleBufferTriggerBuilder<>();
     }
 
+    /**
+     * use {@link com.github.phantomthief.collection.BufferTrigger#newSimpleBufferTrigger} instead
+     */
+    @Deprecated
     public static <E, C> GenericSimpleBufferTriggerBuilder<E, C> newGenericBuilder() {
         return new GenericSimpleBufferTriggerBuilder<>(newBuilder());
     }

@@ -3,6 +3,11 @@
  */
 package com.github.phantomthief.collection;
 
+import com.github.phantomthief.collection.impl.BatchConsumeBlockingQueueTrigger;
+import com.github.phantomthief.collection.impl.GenericBatchConsumerTriggerBuilder;
+import com.github.phantomthief.collection.impl.GenericSimpleBufferTriggerBuilder;
+import com.github.phantomthief.collection.impl.SimpleBufferTrigger;
+
 /**
  * @author w.vela
  */
@@ -13,4 +18,13 @@ public interface BufferTrigger<E> {
     void manuallyDoTrigger();
 
     long getPendingChanges();
+
+    static <E, C> GenericSimpleBufferTriggerBuilder<E, C> simple() {
+        return new GenericSimpleBufferTriggerBuilder<>(SimpleBufferTrigger.newBuilder());
+    }
+
+    static <E> GenericBatchConsumerTriggerBuilder<E> batchBlocking() {
+        return new GenericBatchConsumerTriggerBuilder<>(
+                BatchConsumeBlockingQueueTrigger.newBuilder());
+    }
 }

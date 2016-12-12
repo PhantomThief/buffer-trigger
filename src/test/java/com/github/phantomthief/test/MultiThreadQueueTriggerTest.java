@@ -3,35 +3,35 @@
  */
 package com.github.phantomthief.test;
 
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.util.Collections.synchronizedSet;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
 import org.junit.Test;
 
 import com.github.phantomthief.collection.BufferTrigger;
-import com.github.phantomthief.collection.impl.BatchConsumeBlockingQueueTrigger;
 
 /**
  * @author w.vela
  */
 public class MultiThreadQueueTriggerTest {
 
-    private Set<String> dealed;
+    private Set<String> deal;
 
     @Test
     public void test() throws InterruptedException {
-        BufferTrigger<String> buffer = BatchConsumeBlockingQueueTrigger.newBuilder() //
+        BufferTrigger<String> buffer = BufferTrigger.<String> batchBlocking() //
                 .batchConsumerSize(3) //
-                .setConsumer(this::delay) //
-                .queueCapacity(5) //
+                .setConsumerEx(this::delay) //
                 .build();
-        Set<String> allData = Collections.synchronizedSet(new HashSet<>());
-        dealed = Collections.synchronizedSet(new HashSet<>());
+        Set<String> allData = synchronizedSet(new HashSet<>());
+        deal = synchronizedSet(new HashSet<>());
 
         for (int i = 0; i < 20; i++) {
             String e = "e:" + i;
@@ -39,40 +39,45 @@ public class MultiThreadQueueTriggerTest {
             buffer.enqueue(e);
             allData.add(e);
         }
-        Thread.sleep(TimeUnit.SECONDS.toMillis(1));
+        System.out.println("after enqueue.");
+        sleepUninterruptibly(1, SECONDS);
 
+        System.out.println("do manually");
         buffer.manuallyDoTrigger();
-        assertTrue(dealed.equals(allData));
+        System.out.println("after do manually");
+        assertTrue(deal.equals(allData));
     }
 
     @Test
     public void test2() throws InterruptedException {
         BufferTrigger<String> buffer = BufferTrigger.<String> batchBlocking() //
                 .batchConsumerSize(3) //
-                .setConsumer(this::delay) //
+                .setConsumerEx(this::delay) //
+                .consumePeriod(10, MILLISECONDS) //
                 .build();
-        Set<String> allData = Collections.synchronizedSet(new HashSet<>());
-        dealed = Collections.synchronizedSet(new HashSet<>());
+        Set<String> allData = synchronizedSet(new HashSet<>());
+        deal = synchronizedSet(new HashSet<>());
 
-        for (int i = 0; i < 21; i++) {
+        for (int i = 0; i < 30; i++) {
             String e = "e:" + i;
             System.out.println("enqueue:" + e);
             buffer.enqueue(e);
             allData.add(e);
+            sleepUninterruptibly(10, MILLISECONDS);
         }
-        Thread.sleep(TimeUnit.SECONDS.toMillis(1));
+        System.out.println("after enqueue.");
+        sleepUninterruptibly(1, SECONDS);
 
+        System.out.println("do manually");
         buffer.manuallyDoTrigger();
-        assertTrue(dealed.equals(allData));
+        System.out.println("after do manually");
+        assertTrue(deal.equals(allData));
     }
 
     private void delay(Collection<String> obj) {
-        try {
-            System.out.println("delayed:" + obj);
-            Thread.sleep(TimeUnit.SECONDS.toMillis(2));
-            dealed.addAll(obj);
-        } catch (InterruptedException e) {
-            // 
-        }
+        System.out.println("delayed:" + obj);
+        sleepUninterruptibly(2, SECONDS);
+        deal.addAll(obj);
+        System.out.println("after:" + obj);
     }
 }

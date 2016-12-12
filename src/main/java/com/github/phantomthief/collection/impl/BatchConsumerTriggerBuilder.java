@@ -8,9 +8,7 @@ import static java.util.concurrent.Executors.newScheduledThreadPool;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.util.List;
-import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
@@ -23,21 +21,13 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 @SuppressWarnings({ "unchecked", "rawtypes" })
 public final class BatchConsumerTriggerBuilder<E> {
 
-    private static final int ARRAY_LIST_THRESHOLD = 1000;
     private static final long DEFAULT_TICK_TIME = SECONDS.toMillis(1);
 
     private ScheduledExecutorService scheduledExecutorService;
-    private long tickTime;
-    private boolean forceConsumeEveryTick;
+    private long consumePeriod;
     private int batchConsumerSize;
-    private BlockingQueue<E> queue;
     private ThrowableConsumer<List<E>, Exception> consumer;
     private BiConsumer<Throwable, List<E>> exceptionHandler;
-
-    public BatchConsumerTriggerBuilder<E> forceConsumeEveryTick() {
-        this.forceConsumeEveryTick = true;
-        return this;
-    }
 
     public BatchConsumerTriggerBuilder<E>
             setScheduleExecutorService(ScheduledExecutorService scheduledExecutorService) {
@@ -45,8 +35,21 @@ public final class BatchConsumerTriggerBuilder<E> {
         return this;
     }
 
+    @Deprecated
+    public BatchConsumerTriggerBuilder<E> forceConsumeEveryTick() {
+        return this;
+    }
+
+    /**
+     * use {@link #consumePeriod(long, TimeUnit)} instead
+     */
+    @Deprecated
     public BatchConsumerTriggerBuilder<E> tickTime(long time, TimeUnit unit) {
-        this.tickTime = unit.toMillis(time);
+        return consumePeriod(time, unit);
+    }
+
+    public BatchConsumerTriggerBuilder<E> consumePeriod(long time, TimeUnit unit) {
+        this.consumePeriod = unit.toMillis(time);
         return this;
     }
 
@@ -57,9 +60,7 @@ public final class BatchConsumerTriggerBuilder<E> {
 
     @Deprecated
     public <E1> BatchConsumerTriggerBuilder<E1> setQueue(BlockingQueue<? extends E> queue) {
-        BatchConsumerTriggerBuilder<E1> thisBuilder = (BatchConsumerTriggerBuilder<E1>) this;
-        thisBuilder.queue = (BlockingQueue<E1>) queue;
-        return thisBuilder;
+        return (BatchConsumerTriggerBuilder<E1>) this;
     }
 
     /**
@@ -86,35 +87,24 @@ public final class BatchConsumerTriggerBuilder<E> {
         return thisBuilder;
     }
 
-    /**
-     * don't set queue capacity any more. it auto set to batch size+1
-     */
     @Deprecated
     public BatchConsumerTriggerBuilder<E> queueCapacity(int capacity) {
-        if (capacity > ARRAY_LIST_THRESHOLD) {
-            this.queue = new LinkedBlockingDeque<>(capacity);
-        } else {
-            this.queue = new ArrayBlockingQueue<>(capacity);
-        }
         return this;
     }
 
     public <E1> BufferTrigger<E1> build() {
         return (BufferTrigger<E1>) new LazyBufferTrigger<>(() -> {
             ensure();
-            return new BatchConsumeBlockingQueueTrigger(forceConsumeEveryTick, batchConsumerSize,
-                    queue, exceptionHandler, consumer, scheduledExecutorService, tickTime);
+            return new BatchConsumeBlockingQueueTrigger(consumePeriod, batchConsumerSize,
+                    exceptionHandler, consumer, scheduledExecutorService);
         });
     }
 
     private void ensure() {
         checkNotNull(consumer);
 
-        if (tickTime <= 0) {
-            tickTime = DEFAULT_TICK_TIME;
-        }
-        if (queue == null) {
-            queueCapacity(batchConsumerSize + 1);
+        if (consumePeriod <= 0) {
+            consumePeriod = DEFAULT_TICK_TIME;
         }
         if (scheduledExecutorService == null) {
             scheduledExecutorService = makeScheduleExecutor();

@@ -24,6 +24,7 @@ public class GenericBatchConsumerTriggerBuilder<E> {
         this.builder = builder;
     }
 
+    @Deprecated
     public GenericBatchConsumerTriggerBuilder<E> forceConsumeEveryTick() {
         builder.forceConsumeEveryTick();
         return this;
@@ -35,8 +36,17 @@ public class GenericBatchConsumerTriggerBuilder<E> {
         return this;
     }
 
+    /**
+     * use {@link #consumePeriod(long, TimeUnit)} instead
+     */
+    @Deprecated
     public GenericBatchConsumerTriggerBuilder<E> tickTime(long time, TimeUnit unit) {
         builder.tickTime(time, unit);
+        return this;
+    }
+
+    public GenericBatchConsumerTriggerBuilder<E> consumePeriod(long time, TimeUnit unit) {
+        builder.consumePeriod(time, unit);
         return this;
     }
 

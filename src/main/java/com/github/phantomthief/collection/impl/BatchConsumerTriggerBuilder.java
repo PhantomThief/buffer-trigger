@@ -11,7 +11,6 @@ import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingDeque;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
@@ -56,6 +55,7 @@ public final class BatchConsumerTriggerBuilder<E> {
         return this;
     }
 
+    @Deprecated
     public <E1> BatchConsumerTriggerBuilder<E1> setQueue(BlockingQueue<? extends E> queue) {
         BatchConsumerTriggerBuilder<E1> thisBuilder = (BatchConsumerTriggerBuilder<E1>) this;
         thisBuilder.queue = (BlockingQueue<E1>) queue;
@@ -86,6 +86,10 @@ public final class BatchConsumerTriggerBuilder<E> {
         return thisBuilder;
     }
 
+    /**
+     * don't set queue capacity any more. it auto set to batch size+1
+     */
+    @Deprecated
     public BatchConsumerTriggerBuilder<E> queueCapacity(int capacity) {
         if (capacity > ARRAY_LIST_THRESHOLD) {
             this.queue = new LinkedBlockingDeque<>(capacity);
@@ -110,7 +114,7 @@ public final class BatchConsumerTriggerBuilder<E> {
             tickTime = DEFAULT_TICK_TIME;
         }
         if (queue == null) {
-            queue = new LinkedBlockingQueue<>();
+            queueCapacity(batchConsumerSize + 1);
         }
         if (scheduledExecutorService == null) {
             scheduledExecutorService = makeScheduleExecutor();

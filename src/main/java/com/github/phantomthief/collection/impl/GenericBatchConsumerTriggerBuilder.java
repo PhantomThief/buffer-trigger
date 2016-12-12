@@ -45,6 +45,7 @@ public class GenericBatchConsumerTriggerBuilder<E> {
         return this;
     }
 
+    @Deprecated
     public GenericBatchConsumerTriggerBuilder<E> setQueue(BlockingQueue<? extends E> queue) {
         builder.setQueue(queue);
         return this;
@@ -71,6 +72,7 @@ public class GenericBatchConsumerTriggerBuilder<E> {
         return this;
     }
 
+    @Deprecated
     public GenericBatchConsumerTriggerBuilder<E> queueCapacity(int capacity) {
         builder.queueCapacity(capacity);
         return this;

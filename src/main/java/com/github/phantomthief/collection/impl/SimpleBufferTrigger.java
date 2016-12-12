@@ -70,7 +70,7 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
     }
 
     /**
-     * use {@link com.github.phantomthief.collection.BufferTrigger#newSimpleBufferTrigger} instead
+     * use {@link com.github.phantomthief.collection.BufferTrigger#simple} instead
      */
     @Deprecated
     public static SimpleBufferTriggerBuilder<Object, Object> newBuilder() {
@@ -78,7 +78,7 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
     }
 
     /**
-     * use {@link com.github.phantomthief.collection.BufferTrigger#newSimpleBufferTrigger} instead
+     * use {@link com.github.phantomthief.collection.BufferTrigger#simple} instead
      */
     @Deprecated
     public static <E, C> GenericSimpleBufferTriggerBuilder<E, C> newGenericBuilder() {

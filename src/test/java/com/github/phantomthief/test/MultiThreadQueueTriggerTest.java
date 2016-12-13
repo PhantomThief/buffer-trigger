@@ -53,7 +53,7 @@ public class MultiThreadQueueTriggerTest {
         BufferTrigger<String> buffer = BufferTrigger.<String> batchBlocking() //
                 .batchConsumerSize(3) //
                 .setConsumerEx(this::delay) //
-                .consumePeriod(10, MILLISECONDS) //
+                .linger(10, MILLISECONDS) //
                 .build();
         Set<String> allData = synchronizedSet(new HashSet<>());
         deal = synchronizedSet(new HashSet<>());

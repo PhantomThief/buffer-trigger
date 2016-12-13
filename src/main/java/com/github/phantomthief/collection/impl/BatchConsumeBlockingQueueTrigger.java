@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.BiConsumer;
 
@@ -38,6 +39,7 @@ public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
     private final BiConsumer<Throwable, List<E>> exceptionHandler;
     private final ScheduledExecutorService scheduledExecutorService;
     private final ReentrantLock lock = new ReentrantLock();
+    private final AtomicBoolean running = new AtomicBoolean();
 
     BatchConsumeBlockingQueueTrigger(long lingerMs, int batchSize, int bufferSize,
             BiConsumer<Throwable, List<E>> exceptionHandler,
@@ -66,15 +68,22 @@ public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
     public void enqueue(E element) {
         try {
             queue.put(element);
-            if (queue.size() >= batchSize) {
-                runWithTryLock(lock, () -> {
-                    if (queue.size() >= batchSize) {
-                        this.scheduledExecutorService.execute(this::doBatchConsumer);
-                    }
-                });
-            }
+            tryTrigBatchConsume();
         } catch (InterruptedException e) {
             currentThread().interrupt();
+        }
+    }
+
+    private void tryTrigBatchConsume() {
+        if (queue.size() >= batchSize) {
+            runWithTryLock(lock, () -> {
+                if (queue.size() >= batchSize) {
+                    if (!running.get()) { // prevent repeat enqueue
+                        this.scheduledExecutorService.execute(this::doBatchConsumer);
+                        running.set(true);
+                    }
+                }
+            });
         }
     }
 
@@ -85,27 +94,36 @@ public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
 
     private void doBatchConsumer() {
         runWithLock(lock, () -> {
-            while (!queue.isEmpty()) {
-                List<E> toConsumeData = new ArrayList<>(min(batchSize, queue.size()));
-                queue.drainTo(toConsumeData, batchSize);
-                if (!toConsumeData.isEmpty()) {
-                    try {
-                        consumer.accept(toConsumeData);
-                    } catch (Throwable e) {
-                        if (exceptionHandler != null) {
-                            try {
-                                exceptionHandler.accept(e, toConsumeData);
-                            } catch (Throwable ex) {
-                                e.printStackTrace();
-                                ex.printStackTrace();
-                            }
-                        } else {
-                            logger.error("Ops.", e);
-                        }
+            try {
+                running.set(true);
+                while (!queue.isEmpty()) {
+                    List<E> toConsumeData = new ArrayList<>(min(batchSize, queue.size()));
+                    queue.drainTo(toConsumeData, batchSize);
+                    if (!toConsumeData.isEmpty()) {
+                        doConsume(toConsumeData);
                     }
                 }
+            } finally {
+                running.set(false);
             }
         });
+    }
+
+    private void doConsume(List<E> toConsumeData) {
+        try {
+            consumer.accept(toConsumeData);
+        } catch (Throwable e) {
+            if (exceptionHandler != null) {
+                try {
+                    exceptionHandler.accept(e, toConsumeData);
+                } catch (Throwable ex) {
+                    e.printStackTrace();
+                    ex.printStackTrace();
+                }
+            } else {
+                logger.error("Ops.", e);
+            }
+        }
     }
 
     private class BatchConsumerRunnable implements Runnable {

@@ -33,6 +33,7 @@ public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
     private final ThrowableConsumer<List<E>, Exception> consumer;
     private final BiConsumer<Throwable, List<E>> exceptionHandler;
     private final ScheduledExecutorService scheduledExecutorService;
+    private final Object lock = new Object();
 
     BatchConsumeBlockingQueueTrigger(long consumePeriod, int batchConsumerSize,
             BiConsumer<Throwable, List<E>> exceptionHandler,
@@ -61,7 +62,7 @@ public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
         try {
             queue.put(element);
             if (queue.size() >= batchConsumerSize) {
-                synchronized (BatchConsumeBlockingQueueTrigger.this) {
+                synchronized (lock) {
                     if (queue.size() >= batchConsumerSize) {
                         this.scheduledExecutorService.execute(this::doBatchConsumer);
                     }
@@ -78,7 +79,7 @@ public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
     }
 
     private void doBatchConsumer() {
-        synchronized (BatchConsumeBlockingQueueTrigger.this) {
+        synchronized (lock) {
             while (!queue.isEmpty()) {
                 List<E> toConsumeData = new ArrayList<>(min(batchConsumerSize, queue.size()));
                 queue.drainTo(toConsumeData, batchConsumerSize);

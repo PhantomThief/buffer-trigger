@@ -29,23 +29,23 @@ public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
 
     private final BlockingQueue<E> queue;
     private final int batchConsumerSize;
-    private final long consumePeriod;
+    private final long linger;
     private final ThrowableConsumer<List<E>, Exception> consumer;
     private final BiConsumer<Throwable, List<E>> exceptionHandler;
     private final ScheduledExecutorService scheduledExecutorService;
     private final Object lock = new Object();
 
-    BatchConsumeBlockingQueueTrigger(long consumePeriod, int batchConsumerSize,
+    BatchConsumeBlockingQueueTrigger(long linger, int batchConsumerSize,
             BiConsumer<Throwable, List<E>> exceptionHandler,
             ThrowableConsumer<List<E>, Exception> consumer,
             ScheduledExecutorService scheduledExecutorService) {
-        this.consumePeriod = consumePeriod;
+        this.linger = linger;
         this.batchConsumerSize = batchConsumerSize;
         this.queue = new LinkedBlockingQueue<>(batchConsumerSize);
         this.consumer = consumer;
         this.exceptionHandler = exceptionHandler;
         this.scheduledExecutorService = scheduledExecutorService;
-        this.scheduledExecutorService.schedule(new BatchConsumerRunnable(), this.consumePeriod,
+        this.scheduledExecutorService.schedule(new BatchConsumerRunnable(), this.linger,
                 MILLISECONDS);
     }
 
@@ -110,7 +110,7 @@ public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
             try {
                 doBatchConsumer();
             } finally {
-                scheduledExecutorService.schedule(this, consumePeriod, MILLISECONDS);
+                scheduledExecutorService.schedule(this, linger, MILLISECONDS);
             }
         }
     }

@@ -7,6 +7,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static java.util.concurrent.Executors.newScheduledThreadPool;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
@@ -21,11 +22,11 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 @SuppressWarnings({ "unchecked", "rawtypes" })
 public final class BatchConsumerTriggerBuilder<E> {
 
-    private static final long DEFAULT_TICK_TIME = SECONDS.toMillis(1);
+    private static final long DEFAULT_LINGER_MS = SECONDS.toMillis(1);
 
     private ScheduledExecutorService scheduledExecutorService;
-    private long consumePeriod;
-    private int batchConsumerSize;
+    private long linger;
+    private int batchSize;
     private ThrowableConsumer<List<E>, Exception> consumer;
     private BiConsumer<Throwable, List<E>> exceptionHandler;
 
@@ -41,20 +42,34 @@ public final class BatchConsumerTriggerBuilder<E> {
     }
 
     /**
-     * use {@link #consumePeriod(long, TimeUnit)} instead
+     * use {@link #linger(long, TimeUnit)} instead
      */
     @Deprecated
     public BatchConsumerTriggerBuilder<E> tickTime(long time, TimeUnit unit) {
-        return consumePeriod(time, unit);
+        return linger(time, unit);
     }
 
-    public BatchConsumerTriggerBuilder<E> consumePeriod(long time, TimeUnit unit) {
-        this.consumePeriod = unit.toMillis(time);
+    public BatchConsumerTriggerBuilder<E> linger(long time, TimeUnit unit) {
+        this.linger = unit.toMillis(time);
         return this;
     }
 
+    public BatchConsumerTriggerBuilder<E> linger(Duration duration) {
+        this.linger = duration.toMillis();
+        return this;
+    }
+
+    /**
+     * use {@link #batchSize} instead
+     */
+    @Deprecated
     public BatchConsumerTriggerBuilder<E> batchConsumerSize(int size) {
-        this.batchConsumerSize = size;
+        this.batchSize = size;
+        return this;
+    }
+
+    public BatchConsumerTriggerBuilder<E> batchSize(int size) {
+        this.batchSize = size;
         return this;
     }
 
@@ -95,7 +110,7 @@ public final class BatchConsumerTriggerBuilder<E> {
     public <E1> BufferTrigger<E1> build() {
         return (BufferTrigger<E1>) new LazyBufferTrigger<>(() -> {
             ensure();
-            return new BatchConsumeBlockingQueueTrigger(consumePeriod, batchConsumerSize,
+            return new BatchConsumeBlockingQueueTrigger(linger, batchSize,
                     exceptionHandler, consumer, scheduledExecutorService);
         });
     }
@@ -103,8 +118,8 @@ public final class BatchConsumerTriggerBuilder<E> {
     private void ensure() {
         checkNotNull(consumer);
 
-        if (consumePeriod <= 0) {
-            consumePeriod = DEFAULT_TICK_TIME;
+        if (linger <= 0) {
+            linger = DEFAULT_LINGER_MS;
         }
         if (scheduledExecutorService == null) {
             scheduledExecutorService = makeScheduleExecutor();

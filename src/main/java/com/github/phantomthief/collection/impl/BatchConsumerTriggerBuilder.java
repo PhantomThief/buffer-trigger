@@ -27,6 +27,7 @@ public final class BatchConsumerTriggerBuilder<E> {
     private ScheduledExecutorService scheduledExecutorService;
     private long lingerMs;
     private int batchSize;
+    private int bufferSize;
     private ThrowableConsumer<List<E>, Exception> consumer;
     private BiConsumer<Throwable, List<E>> exceptionHandler;
 
@@ -102,15 +103,23 @@ public final class BatchConsumerTriggerBuilder<E> {
         return thisBuilder;
     }
 
+    /**
+     * use {@link #bufferSize} instead
+     */
     @Deprecated
     public BatchConsumerTriggerBuilder<E> queueCapacity(int capacity) {
+        return bufferSize(capacity);
+    }
+
+    public BatchConsumerTriggerBuilder<E> bufferSize(int bufferSize) {
+        this.bufferSize = bufferSize;
         return this;
     }
 
     public <E1> BufferTrigger<E1> build() {
         return (BufferTrigger<E1>) new LazyBufferTrigger<>(() -> {
             ensure();
-            return new BatchConsumeBlockingQueueTrigger(lingerMs, batchSize,
+            return new BatchConsumeBlockingQueueTrigger(lingerMs, batchSize, bufferSize,
                     exceptionHandler, consumer, scheduledExecutorService);
         });
     }

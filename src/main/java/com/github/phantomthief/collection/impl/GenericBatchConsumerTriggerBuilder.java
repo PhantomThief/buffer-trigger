@@ -97,9 +97,17 @@ public class GenericBatchConsumerTriggerBuilder<E> {
         return this;
     }
 
+    /**
+     * use {@link #bufferSize} instead
+     */
     @Deprecated
     public GenericBatchConsumerTriggerBuilder<E> queueCapacity(int capacity) {
         builder.queueCapacity(capacity);
+        return this;
+    }
+
+    public GenericBatchConsumerTriggerBuilder<E> bufferSize(int bufferSize) {
+        builder.bufferSize(bufferSize);
         return this;
     }
 

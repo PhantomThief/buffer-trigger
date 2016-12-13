@@ -3,6 +3,9 @@
  */
 package com.github.phantomthief.collection.impl;
 
+import static com.github.phantomthief.util.MoreLocks.runWithLock;
+import static com.github.phantomthief.util.MoreLocks.runWithTryLock;
+import static java.lang.Integer.max;
 import static java.lang.Math.min;
 import static java.lang.Thread.currentThread;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
@@ -13,6 +16,7 @@ import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.BiConsumer;
 
 import org.slf4j.Logger;
@@ -28,20 +32,20 @@ public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
     private static final Logger logger = getLogger(BatchConsumeBlockingQueueTrigger.class);
 
     private final BlockingQueue<E> queue;
-    private final int batchConsumerSize;
+    private final int batchSize;
     private final long lingerMs;
     private final ThrowableConsumer<List<E>, Exception> consumer;
     private final BiConsumer<Throwable, List<E>> exceptionHandler;
     private final ScheduledExecutorService scheduledExecutorService;
-    private final Object lock = new Object();
+    private final ReentrantLock lock = new ReentrantLock();
 
-    BatchConsumeBlockingQueueTrigger(long lingerMs, int batchConsumerSize,
+    BatchConsumeBlockingQueueTrigger(long lingerMs, int batchSize, int bufferSize,
             BiConsumer<Throwable, List<E>> exceptionHandler,
             ThrowableConsumer<List<E>, Exception> consumer,
             ScheduledExecutorService scheduledExecutorService) {
         this.lingerMs = lingerMs;
-        this.batchConsumerSize = batchConsumerSize;
-        this.queue = new LinkedBlockingQueue<>(batchConsumerSize);
+        this.batchSize = batchSize;
+        this.queue = new LinkedBlockingQueue<>(max(bufferSize, batchSize));
         this.consumer = consumer;
         this.exceptionHandler = exceptionHandler;
         this.scheduledExecutorService = scheduledExecutorService;
@@ -62,12 +66,12 @@ public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
     public void enqueue(E element) {
         try {
             queue.put(element);
-            if (queue.size() >= batchConsumerSize) {
-                synchronized (lock) {
-                    if (queue.size() >= batchConsumerSize) {
+            if (queue.size() >= batchSize) {
+                runWithTryLock(lock, () -> {
+                    if (queue.size() >= batchSize) {
                         this.scheduledExecutorService.execute(this::doBatchConsumer);
                     }
-                }
+                });
             }
         } catch (InterruptedException e) {
             currentThread().interrupt();
@@ -80,10 +84,10 @@ public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
     }
 
     private void doBatchConsumer() {
-        synchronized (lock) {
+        runWithLock(lock, () -> {
             while (!queue.isEmpty()) {
-                List<E> toConsumeData = new ArrayList<>(min(batchConsumerSize, queue.size()));
-                queue.drainTo(toConsumeData, batchConsumerSize);
+                List<E> toConsumeData = new ArrayList<>(min(batchSize, queue.size()));
+                queue.drainTo(toConsumeData, batchSize);
                 if (!toConsumeData.isEmpty()) {
                     try {
                         consumer.accept(toConsumeData);
@@ -101,7 +105,7 @@ public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
                     }
                 }
             }
-        }
+        });
     }
 
     private class BatchConsumerRunnable implements Runnable {

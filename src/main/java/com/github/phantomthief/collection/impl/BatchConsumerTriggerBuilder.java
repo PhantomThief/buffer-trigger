@@ -25,7 +25,7 @@ public final class BatchConsumerTriggerBuilder<E> {
     private static final long DEFAULT_LINGER_MS = SECONDS.toMillis(1);
 
     private ScheduledExecutorService scheduledExecutorService;
-    private long linger;
+    private long lingerMs;
     private int batchSize;
     private ThrowableConsumer<List<E>, Exception> consumer;
     private BiConsumer<Throwable, List<E>> exceptionHandler;
@@ -50,12 +50,12 @@ public final class BatchConsumerTriggerBuilder<E> {
     }
 
     public BatchConsumerTriggerBuilder<E> linger(long time, TimeUnit unit) {
-        this.linger = unit.toMillis(time);
+        this.lingerMs = unit.toMillis(time);
         return this;
     }
 
     public BatchConsumerTriggerBuilder<E> linger(Duration duration) {
-        this.linger = duration.toMillis();
+        this.lingerMs = duration.toMillis();
         return this;
     }
 
@@ -110,7 +110,7 @@ public final class BatchConsumerTriggerBuilder<E> {
     public <E1> BufferTrigger<E1> build() {
         return (BufferTrigger<E1>) new LazyBufferTrigger<>(() -> {
             ensure();
-            return new BatchConsumeBlockingQueueTrigger(linger, batchSize,
+            return new BatchConsumeBlockingQueueTrigger(lingerMs, batchSize,
                     exceptionHandler, consumer, scheduledExecutorService);
         });
     }
@@ -118,8 +118,8 @@ public final class BatchConsumerTriggerBuilder<E> {
     private void ensure() {
         checkNotNull(consumer);
 
-        if (linger <= 0) {
-            linger = DEFAULT_LINGER_MS;
+        if (lingerMs <= 0) {
+            lingerMs = DEFAULT_LINGER_MS;
         }
         if (scheduledExecutorService == null) {
             scheduledExecutorService = makeScheduleExecutor();

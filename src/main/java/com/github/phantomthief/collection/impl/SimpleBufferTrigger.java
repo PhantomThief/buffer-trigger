@@ -71,6 +71,7 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
 
     /**
      * use {@link com.github.phantomthief.collection.BufferTrigger#simple} instead
+     * or {@link com.github.phantomthief.collection.BufferTrigger#simpleTrigger}
      */
     @Deprecated
     public static SimpleBufferTriggerBuilder<Object, Object> newBuilder() {

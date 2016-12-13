@@ -4,12 +4,14 @@
 package com.github.phantomthief.collection.impl;
 
 import static java.lang.Math.min;
+import static java.lang.Thread.currentThread;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.slf4j.LoggerFactory.getLogger;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.BiConsumer;
 
@@ -23,51 +25,32 @@ import com.github.phantomthief.util.ThrowableConsumer;
  */
 public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
 
-    private final Logger logger = getLogger(getClass());
+    private static final Logger logger = getLogger(BatchConsumeBlockingQueueTrigger.class);
 
-    private final int batchConsumerSize;
     private final BlockingQueue<E> queue;
+    private final int batchConsumerSize;
+    private final long lingerMs;
     private final ThrowableConsumer<List<E>, Exception> consumer;
     private final BiConsumer<Throwable, List<E>> exceptionHandler;
+    private final ScheduledExecutorService scheduledExecutorService;
+    private final Object lock = new Object();
 
-    BatchConsumeBlockingQueueTrigger(boolean forceConsumeEveryTick, int batchConsumerSize,
-            BlockingQueue<E> queue, BiConsumer<Throwable, List<E>> exceptionHandler,
+    BatchConsumeBlockingQueueTrigger(long lingerMs, int batchConsumerSize,
+            BiConsumer<Throwable, List<E>> exceptionHandler,
             ThrowableConsumer<List<E>, Exception> consumer,
-            ScheduledExecutorService scheduledExecutorService,
-            long tickTime) {
+            ScheduledExecutorService scheduledExecutorService) {
+        this.lingerMs = lingerMs;
         this.batchConsumerSize = batchConsumerSize;
-        this.queue = queue;
+        this.queue = new LinkedBlockingQueue<>(batchConsumerSize);
         this.consumer = consumer;
         this.exceptionHandler = exceptionHandler;
-        scheduledExecutorService.scheduleWithFixedDelay(() -> {
-            synchronized (BatchConsumeBlockingQueueTrigger.this) {
-                while (queue.size() >= batchConsumerSize
-                        || (forceConsumeEveryTick && !queue.isEmpty())) {
-                    List<E> toConsumerData = new ArrayList<>(min(batchConsumerSize, queue.size()));
-                    queue.drainTo(toConsumerData, batchConsumerSize);
-                    if (!toConsumerData.isEmpty()) {
-                        try {
-                            consumer.accept(toConsumerData);
-                        } catch (Throwable e) {
-                            if (exceptionHandler != null) {
-                                try {
-                                    exceptionHandler.accept(e, toConsumerData);
-                                } catch (Throwable ex) {
-                                    e.printStackTrace();
-                                    ex.printStackTrace();
-                                }
-                            } else {
-                                logger.error("Ops.", e);
-                            }
-                        }
-                    }
-                }
-            }
-        }, tickTime, tickTime, MILLISECONDS);
+        this.scheduledExecutorService = scheduledExecutorService;
+        this.scheduledExecutorService.schedule(new BatchConsumerRunnable(), this.lingerMs,
+                MILLISECONDS);
     }
 
     /**
-     * use {@link com.github.phantomthief.collection.BufferTrigger#newBatchConsumerTrigger} instead
+     * use {@link com.github.phantomthief.collection.BufferTrigger#batchBlocking} instead
      */
     @Deprecated
     public static BatchConsumerTriggerBuilder<Object> newBuilder() {
@@ -78,24 +61,35 @@ public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
     public void enqueue(E element) {
         try {
             queue.put(element);
+            if (queue.size() >= batchConsumerSize) {
+                synchronized (lock) {
+                    if (queue.size() >= batchConsumerSize) {
+                        this.scheduledExecutorService.execute(this::doBatchConsumer);
+                    }
+                }
+            }
         } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
+            currentThread().interrupt();
         }
     }
 
     @Override
     public void manuallyDoTrigger() {
-        synchronized (BatchConsumeBlockingQueueTrigger.this) {
+        doBatchConsumer();
+    }
+
+    private void doBatchConsumer() {
+        synchronized (lock) {
             while (!queue.isEmpty()) {
-                List<E> toConsumerData = new ArrayList<>(min(queue.size(), batchConsumerSize));
-                queue.drainTo(toConsumerData, batchConsumerSize);
-                if (!toConsumerData.isEmpty()) {
+                List<E> toConsumeData = new ArrayList<>(min(batchConsumerSize, queue.size()));
+                queue.drainTo(toConsumeData, batchConsumerSize);
+                if (!toConsumeData.isEmpty()) {
                     try {
-                        consumer.accept(toConsumerData);
+                        consumer.accept(toConsumeData);
                     } catch (Throwable e) {
                         if (exceptionHandler != null) {
                             try {
-                                exceptionHandler.accept(e, toConsumerData);
+                                exceptionHandler.accept(e, toConsumeData);
                             } catch (Throwable ex) {
                                 e.printStackTrace();
                                 ex.printStackTrace();
@@ -105,6 +99,18 @@ public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
                         }
                     }
                 }
+            }
+        }
+    }
+
+    private class BatchConsumerRunnable implements Runnable {
+
+        @Override
+        public void run() {
+            try {
+                doBatchConsumer();
+            } finally {
+                scheduledExecutorService.schedule(this, lingerMs, MILLISECONDS);
             }
         }
     }

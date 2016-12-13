@@ -74,6 +74,33 @@ public class MultiThreadQueueTriggerTest {
         assertTrue(deal.equals(allData));
     }
 
+    @Test
+    public void test3() throws InterruptedException {
+        BufferTrigger<String> buffer = BufferTrigger.<String> batchBlocking() //
+                .batchSize(3) //
+                .setConsumerEx(this::delay) //
+                .bufferSize(10) //
+                .linger(1, SECONDS) //
+                .build();
+        Set<String> allData = synchronizedSet(new HashSet<>());
+        deal = synchronizedSet(new HashSet<>());
+
+        for (int i = 0; i < 30; i++) {
+            String e = "e:" + i;
+            System.out.println("enqueue:" + e);
+            buffer.enqueue(e);
+            allData.add(e);
+            sleepUninterruptibly(10, MILLISECONDS);
+        }
+        System.out.println("after enqueue.");
+        sleepUninterruptibly(1, SECONDS);
+
+        System.out.println("do manually");
+        buffer.manuallyDoTrigger();
+        System.out.println("after do manually");
+        assertTrue(deal.equals(allData));
+    }
+
     private void delay(Collection<String> obj) {
         System.out.println("delayed:" + obj);
         sleepUninterruptibly(2, SECONDS);

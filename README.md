@@ -13,7 +13,7 @@ A local data buffer with customizable data trigger
 <dependency>
     <groupId>com.github.phantomthief</groupId>
     <artifactId>buffer-trigger</artifactId>
-    <version>0.2.7-SNAPSHOT</version>
+    <version>0.2.8-SNAPSHOT</version>
 </dependency>
 ```
 
@@ -42,9 +42,10 @@ private void out(Collection<String> set) {
 
 // batch consumer blocking queue
 BufferTrigger<String> buffer = BatchConsumeBlockingQueueTrigger.<String> newBuilder() //
-                .batchConsumerSize(3) //
-                .setConsumer(this::out) //
-                .queueCapacity(5) //
+                .batchSize(3) //
+                .setConsumerEx(this::out) //
+                .bufferSize(5) //
+                .linger(ofSeconds(2)) //
                 .build();
     
 ```

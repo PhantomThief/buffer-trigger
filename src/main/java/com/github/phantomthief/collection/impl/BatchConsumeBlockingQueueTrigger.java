@@ -7,6 +7,7 @@ import static com.github.phantomthief.util.MoreLocks.runWithLock;
 import static com.github.phantomthief.util.MoreLocks.runWithTryLock;
 import static java.lang.Integer.max;
 import static java.lang.Math.min;
+import static java.lang.System.currentTimeMillis;
 import static java.lang.Thread.currentThread;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.slf4j.LoggerFactory.getLogger;
@@ -17,6 +18,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.BiConsumer;
 
@@ -40,6 +42,7 @@ public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
     private final ScheduledExecutorService scheduledExecutorService;
     private final ReentrantLock lock = new ReentrantLock();
     private final AtomicBoolean running = new AtomicBoolean();
+    private final AtomicLong lastRunTimestamp = new AtomicLong();
 
     BatchConsumeBlockingQueueTrigger(long lingerMs, int batchSize, int bufferSize,
             BiConsumer<Throwable, List<E>> exceptionHandler,
@@ -104,6 +107,7 @@ public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
                     }
                 }
             } finally {
+                lastRunTimestamp.set(currentTimeMillis());
                 running.set(false);
             }
         });
@@ -130,10 +134,16 @@ public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
 
         @Override
         public void run() {
-            try {
-                doBatchConsumer();
-            } finally {
-                scheduledExecutorService.schedule(this, lingerMs, MILLISECONDS);
+            long nextRunTimestamp = lastRunTimestamp.get() + lingerMs;
+            long now = currentTimeMillis();
+            if (nextRunTimestamp > now) {
+                scheduledExecutorService.schedule(this, nextRunTimestamp - now, MILLISECONDS);
+            } else {
+                try {
+                    doBatchConsumer();
+                } finally {
+                    scheduledExecutorService.schedule(this, lingerMs, MILLISECONDS);
+                }
             }
         }
     }

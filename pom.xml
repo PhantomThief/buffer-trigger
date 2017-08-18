@@ -56,7 +56,7 @@
         <dependency>
             <groupId>com.github.phantomthief</groupId>
             <artifactId>more-lambdas</artifactId>
-            <version>0.1.8-SNAPSHOT</version>
+            <version>0.1.8</version>
         </dependency>
 
         <dependency>

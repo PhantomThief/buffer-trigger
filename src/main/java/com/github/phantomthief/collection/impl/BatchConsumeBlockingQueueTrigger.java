@@ -117,8 +117,7 @@ public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
                 try {
                     exceptionHandler.accept(e, toConsumeData);
                 } catch (Throwable ex) {
-                    e.printStackTrace();
-                    ex.printStackTrace();
+                    logger.error("", ex);
                 }
             } else {
                 logger.error("Ops.", e);

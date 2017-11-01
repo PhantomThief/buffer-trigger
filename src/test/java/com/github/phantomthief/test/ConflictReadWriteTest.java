@@ -14,6 +14,7 @@ import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import com.github.phantomthief.collection.BufferTrigger;
@@ -27,6 +28,7 @@ class ConflictReadWriteTest {
 
     private final Map<Object, AtomicInteger> counter = new IdentityHashMap<>();
 
+    @Disabled
     @Test
     void test() {
         Random random = new Random();

@@ -1,6 +1,3 @@
-/**
- * 
- */
 package com.github.phantomthief.test;
 
 import java.text.SimpleDateFormat;
@@ -11,7 +8,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.TimeUnit;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import com.github.phantomthief.collection.BufferTrigger;
 import com.github.phantomthief.collection.impl.SimpleBufferTrigger;
@@ -19,12 +16,12 @@ import com.github.phantomthief.collection.impl.SimpleBufferTrigger;
 /**
  * @author w.vela
  */
-public class MultiThreadBufferTriggerTest {
+class MultiThreadBufferTriggerTest {
 
     private Set<String> dealed;
 
     @Test
-    public void test() throws InterruptedException {
+    void test() throws InterruptedException {
         BufferTrigger<String> buffer = SimpleBufferTrigger.newBuilder() //
                 .on(3, TimeUnit.SECONDS, 1) //
                 .on(2, TimeUnit.SECONDS, 10) //
@@ -58,7 +55,7 @@ public class MultiThreadBufferTriggerTest {
     }
 
     @Test
-    public void test2() throws InterruptedException {
+    void test2() throws InterruptedException {
         BufferTrigger<String> buffer = SimpleBufferTrigger.newBuilder() //
                 .on(3, TimeUnit.SECONDS, 1) //
                 .on(2, TimeUnit.SECONDS, 10) //
@@ -79,7 +76,7 @@ public class MultiThreadBufferTriggerTest {
     }
 
     @Test
-    public void test3() throws InterruptedException {
+    void test3() throws InterruptedException {
         BufferTrigger<String> buffer = SimpleBufferTrigger.newBuilder() //
                 .on(1, TimeUnit.SECONDS, 2) //
                 .on(2, TimeUnit.SECONDS, 1) //
@@ -99,7 +96,7 @@ public class MultiThreadBufferTriggerTest {
     }
 
     @Test
-    public void test4() throws InterruptedException {
+    void test4() throws InterruptedException {
         BufferTrigger<String> buffer = SimpleBufferTrigger.newBuilder() //
                 .on(1, TimeUnit.SECONDS, 1) //
                 .maxBufferCount(2) //

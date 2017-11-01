@@ -1,6 +1,3 @@
-/**
- * 
- */
 package com.github.phantomthief.collection.impl;
 
 import static com.github.phantomthief.util.MoreLocks.runWithLock;

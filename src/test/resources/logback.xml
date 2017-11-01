@@ -1,19 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<configuration
-	scan="true"
-	scanPeriod="10 seconds">
+<configuration scan="true" scanPeriod="10 seconds">
 
-	<appender
-		name="stdout"
-		class="ch.qos.logback.core.ConsoleAppender">
-		<!-- encoders are assigned the type ch.qos.logback.classic.encoder.PatternLayoutEncoder by default -->
+	<appender name="stdout" class="ch.qos.logback.core.ConsoleAppender">
 		<encoder>
-			<pattern>%-4relative [%thread] %-5level %logger{35} - %msg %n</pattern>
+			<pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %level \(%F:%L\) - %msg %n</pattern>
 		</encoder>
+		<includeCallerData>true</includeCallerData>
 	</appender>
 
 	<root>
-		<appender-ref ref="stdout" />
-		<level value="all" />
+		<appender-ref ref="stdout"/>
+		<level value="all"/>
 	</root>
 </configuration>

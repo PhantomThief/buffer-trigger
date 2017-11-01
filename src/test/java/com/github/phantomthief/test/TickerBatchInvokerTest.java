@@ -6,10 +6,10 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.toMap;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -17,7 +17,7 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeoutException;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import com.github.phantomthief.util.TickerBatchInvoker;
 
@@ -25,7 +25,7 @@ import com.github.phantomthief.util.TickerBatchInvoker;
  * @author w.vela
  * Created on 16/5/21.
  */
-public class TickerBatchInvokerTest {
+class TickerBatchInvokerTest {
 
     private Map<Integer, String> load(Collection<Integer> keys) {
         System.out.println("invoke:" + keys);
@@ -45,7 +45,7 @@ public class TickerBatchInvokerTest {
     }
 
     @Test
-    public void test() {
+    void test() {
         TickerBatchInvoker<Integer, String> batchInvoker = TickerBatchInvoker.newBuilder()
                 .build(this::load);
         Map<Integer, CompletableFuture<String>> futures = new HashMap<>();
@@ -59,13 +59,13 @@ public class TickerBatchInvokerTest {
                 String s = future.get();
                 assertEquals(s, String.valueOf(i));
             } catch (Throwable e) {
-                fail();
+                fail(e);
             }
         });
     }
 
     @Test
-    public void testTimeout() {
+    void testTimeout() {
         TickerBatchInvoker<Integer, String> batchInvoker = TickerBatchInvoker.newBuilder()
                 .build(this::load);
         Map<Integer, CompletableFuture<String>> futures = new HashMap<>();
@@ -74,18 +74,12 @@ public class TickerBatchInvokerTest {
             futures.put(i, apply);
             sleepUninterruptibly(100, MILLISECONDS);
         }
-        futures.forEach((i, future) -> {
-            try {
-                future.get(100, MILLISECONDS);
-                fail();
-            } catch (Throwable e) {
-                assertTrue(e instanceof TimeoutException);
-            }
-        });
+        futures.forEach((i, future) -> assertThrows(TimeoutException.class,
+                () -> future.get(100, MILLISECONDS)));
     }
 
     @Test
-    public void testEmptyData() {
+    void testEmptyData() {
         TickerBatchInvoker<Integer, String> batchInvoker = TickerBatchInvoker.newBuilder()
                 .build(this::loadEmpty);
         Map<Integer, CompletableFuture<String>> futures = new HashMap<>();
@@ -98,13 +92,13 @@ public class TickerBatchInvokerTest {
             try {
                 assertNull(future.get());
             } catch (Throwable e) {
-                fail();
+                fail(e);
             }
         });
     }
 
     @Test
-    public void testException() {
+    void testException() {
         TickerBatchInvoker<Integer, String> batchInvoker = TickerBatchInvoker.newBuilder()
                 .build(this::loadException);
         Map<Integer, CompletableFuture<String>> futures = new HashMap<>();
@@ -114,12 +108,8 @@ public class TickerBatchInvokerTest {
             sleepUninterruptibly(100, MILLISECONDS);
         }
         futures.forEach((i, future) -> {
-            try {
-                future.get();
-                fail();
-            } catch (Throwable e) {
-                assertEquals("test", e.getCause().getMessage());
-            }
+            Throwable e = assertThrows(Throwable.class, future::get);
+            assertEquals("test", e.getCause().getMessage());
         });
     }
 }

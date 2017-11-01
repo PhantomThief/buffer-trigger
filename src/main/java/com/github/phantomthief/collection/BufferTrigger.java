@@ -1,6 +1,3 @@
-/**
- * 
- */
 package com.github.phantomthief.collection;
 
 import com.github.phantomthief.collection.impl.BatchConsumeBlockingQueueTrigger;

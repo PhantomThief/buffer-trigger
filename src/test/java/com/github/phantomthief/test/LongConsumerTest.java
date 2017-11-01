@@ -5,11 +5,11 @@ import static java.lang.System.currentTimeMillis;
 import static java.lang.System.out;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import com.github.phantomthief.collection.BufferTrigger;
 import com.github.phantomthief.collection.impl.SimpleBufferTrigger;
@@ -18,10 +18,10 @@ import com.github.phantomthief.collection.impl.SimpleBufferTrigger;
  * @author w.vela
  * Created on 09/08/2016.
  */
-public class LongConsumerTest {
+class LongConsumerTest {
 
     @Test
-    public void testShort() {
+    void testShort() {
         AtomicInteger counter = new AtomicInteger();
         BufferTrigger<Long> bufferTrigger = SimpleBufferTrigger.newBuilder() //
                 .interval(1, SECONDS) //
@@ -41,7 +41,7 @@ public class LongConsumerTest {
     }
 
     @Test
-    public void testLong() {
+    void testLong() {
         AtomicInteger counter = new AtomicInteger();
         BufferTrigger<Long> bufferTrigger = SimpleBufferTrigger.newBuilder() //
                 .interval(1, SECONDS) //

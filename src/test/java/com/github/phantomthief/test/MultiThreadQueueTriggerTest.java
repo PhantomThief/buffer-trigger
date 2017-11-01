@@ -1,31 +1,28 @@
-/**
- * 
- */
 package com.github.phantomthief.test;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.util.Collections.synchronizedSet;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import com.github.phantomthief.collection.BufferTrigger;
 
 /**
  * @author w.vela
  */
-public class MultiThreadQueueTriggerTest {
+class MultiThreadQueueTriggerTest {
 
     private Set<String> deal;
 
     @Test
-    public void test() throws InterruptedException {
+    void test() {
         BufferTrigger<String> buffer = BufferTrigger.<String> batchBlocking() //
                 .batchConsumerSize(3) //
                 .setConsumerEx(this::delay) //
@@ -49,7 +46,7 @@ public class MultiThreadQueueTriggerTest {
     }
 
     @Test
-    public void test2() throws InterruptedException {
+    void test2() {
         BufferTrigger<String> buffer = BufferTrigger.<String> batchBlocking() //
                 .batchConsumerSize(3) //
                 .setConsumerEx(this::delay) //
@@ -75,7 +72,7 @@ public class MultiThreadQueueTriggerTest {
     }
 
     @Test
-    public void test3() throws InterruptedException {
+    void test3() {
         BufferTrigger<String> buffer = BufferTrigger.<String> batchBlocking() //
                 .batchSize(3) //
                 .setConsumerEx(this::delay) //

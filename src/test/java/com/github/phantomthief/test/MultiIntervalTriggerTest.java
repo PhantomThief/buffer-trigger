@@ -2,14 +2,13 @@ package com.github.phantomthief.test;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import com.github.phantomthief.collection.BufferTrigger;
 import com.github.phantomthief.collection.impl.MultiIntervalTriggerStrategy;
@@ -20,10 +19,10 @@ import com.google.common.collect.Interner;
  * @author w.vela
  * Created on 15/07/2016.
  */
-public class MultiIntervalTriggerTest {
+class MultiIntervalTriggerTest {
 
     @Test
-    public void test() {
+    void test() {
         AtomicInteger assertSize = new AtomicInteger();
         BufferTrigger<Integer> bufferTrigger = SimpleBufferTrigger
                 .<Integer, Set<Interner>> newGenericBuilder() //
@@ -52,19 +51,14 @@ public class MultiIntervalTriggerTest {
     }
 
     @Test
-    public void testInvalidBuild() {
-        try {
-            SimpleBufferTrigger.<Integer, Set<Interner>> newGenericBuilder() //
-                    .triggerStrategy(new MultiIntervalTriggerStrategy() //
-                            .on(1, SECONDS, 1) //
-                            .on(2, SECONDS, 2) //
-                    ) //
-                    .consumer(set -> System.out.println("size:" + set.size())) //
-                    .build();
-            fail();
-        } catch (IllegalArgumentException e) {
-            assertTrue(true);
-        }
+    void testInvalidBuild() {
+        assertThrows(IllegalArgumentException.class,
+                () -> SimpleBufferTrigger.<Integer, Set<Interner>> newGenericBuilder() //
+                        .triggerStrategy(new MultiIntervalTriggerStrategy() //
+                                .on(1, SECONDS, 1) //
+                                .on(2, SECONDS, 2) //
+                        ).consumer(set -> System.out.println("size:" + set.size())) //
+                        .build());
     }
 
     private void enqueue(BufferTrigger<Integer> trigger, int size) {

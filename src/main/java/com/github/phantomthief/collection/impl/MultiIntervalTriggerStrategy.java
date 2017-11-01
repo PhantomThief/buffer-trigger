@@ -4,6 +4,7 @@ import static com.github.phantomthief.collection.impl.SimpleBufferTrigger.Trigge
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.lang.Math.abs;
 import static java.lang.Math.min;
+import static java.lang.System.*;
 
 import java.util.Map.Entry;
 import java.util.SortedMap;
@@ -70,7 +71,7 @@ public class MultiIntervalTriggerStrategy implements TriggerStrategy {
 
         boolean doConsumer = false;
 
-        long now = System.currentTimeMillis();
+        long now = currentTimeMillis();
 
         for (Entry<Long, Long> entry : triggerMap.entrySet()) {
             if (now - lastConsumeTimestamp < entry.getKey()) {

@@ -1,36 +1,34 @@
 package com.github.phantomthief.test;
 
+import static com.google.common.util.concurrent.MoreExecutors.shutdownAndAwaitTermination;
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.util.concurrent.Executors.newFixedThreadPool;
 import static java.util.concurrent.TimeUnit.DAYS;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import com.github.phantomthief.collection.BufferTrigger;
 import com.github.phantomthief.collection.impl.SimpleBufferTrigger;
-import com.google.common.util.concurrent.MoreExecutors;
 
 /**
  * @author w.vela
  * Created on 16/5/7.
  */
-public class ConflictReadWriteTest {
+class ConflictReadWriteTest {
 
     private final Map<Object, AtomicInteger> counter = new IdentityHashMap<>();
 
-    @Ignore
     @Test
-    public void test() {
+    void test() {
         Random random = new Random();
         BufferTrigger<Integer> bufferTrigger = SimpleBufferTrigger
                 .<Integer, AtomicInteger> newGenericBuilder().on(5, SECONDS, 1) //
@@ -66,10 +64,10 @@ public class ConflictReadWriteTest {
                             "end consume:" + container.hashCode() + ", size:" + container.get());
                 }) //
                 .build();
-        ExecutorService executorService = Executors.newFixedThreadPool(20);
+        ExecutorService executorService = newFixedThreadPool(20);
         for (int i = 0; i < 100000; i++) {
             executorService.execute(() -> bufferTrigger.enqueue(1));
         }
-        MoreExecutors.shutdownAndAwaitTermination(executorService, 1, DAYS);
+        shutdownAndAwaitTermination(executorService, 1, DAYS);
     }
 }

@@ -72,17 +72,19 @@ public class GenericSimpleBufferTriggerBuilder<E, C> {
             TimeUnit unit) {
         builder.triggerStrategy(new TriggerStrategy() {
 
-            private final Supplier<Long> time = lazy(() -> currentTimeMillis());
+            private final Supplier<Long> time = lazy(System::currentTimeMillis);
 
+            /**
+             * always align to the first trig time
+             */
             @Override
             public SimpleBufferTrigger.TriggerResult canTrigger(long last, long change) {
-                // always align to the first trig time
                 Long alignTime = time.get();
-                long fixed = unit.toMillis(interval);
+                long intervalInMs = unit.toMillis(interval);
                 long now = currentTimeMillis();
-                long intervalIndex = divide((now - alignTime), fixed, UP);
-                long intervalInMs = alignTime + fixed * intervalIndex - now;
-                return trig(change > 0, intervalInMs);
+                long perInterval = divide((now - alignTime), intervalInMs, UP);
+                long result = alignTime + intervalInMs * perInterval - now;
+                return trig(change > 0, result);
             }
         });
         return this;

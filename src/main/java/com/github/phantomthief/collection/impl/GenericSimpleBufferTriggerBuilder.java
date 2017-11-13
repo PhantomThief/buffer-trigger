@@ -85,6 +85,9 @@ public class GenericSimpleBufferTriggerBuilder<E, C> {
                 long now = currentTimeMillis();
                 long perInterval = divide((now - alignTime), intervalInMs, UP);
                 long result = alignTime + intervalInMs * perInterval - now;
+                if (result == 0) {
+                    result = intervalInMs;
+                }
                 return trig(change > 0, result);
             }
         });

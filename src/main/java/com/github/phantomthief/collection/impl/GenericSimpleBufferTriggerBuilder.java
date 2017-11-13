@@ -15,9 +15,6 @@ import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 import java.util.function.ToIntBiFunction;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.github.phantomthief.collection.BufferTrigger;
 import com.github.phantomthief.collection.impl.SimpleBufferTrigger.TriggerStrategy;
 import com.github.phantomthief.util.ThrowableConsumer;
@@ -27,8 +24,6 @@ import com.github.phantomthief.util.ThrowableConsumer;
  */
 public class GenericSimpleBufferTriggerBuilder<E, C> {
 
-    private static final Logger logger = LoggerFactory
-            .getLogger(GenericSimpleBufferTriggerBuilder.class);
     private final SimpleBufferTriggerBuilder<Object, Object> builder;
 
     public GenericSimpleBufferTriggerBuilder(SimpleBufferTriggerBuilder<Object, Object> builder) {

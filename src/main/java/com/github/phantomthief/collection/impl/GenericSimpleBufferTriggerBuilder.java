@@ -79,7 +79,7 @@ public class GenericSimpleBufferTriggerBuilder<E, C> {
              */
             @Override
             public SimpleBufferTrigger.TriggerResult canTrigger(long last, long change) {
-                Long alignTime = time.get();
+                long alignTime = time.get();
                 long intervalInMs = unit.toMillis(interval);
                 long now = currentTimeMillis();
                 long perInterval = divide((now - alignTime), intervalInMs, UP);

@@ -16,6 +16,7 @@ import java.util.function.Supplier;
 import java.util.function.ToIntBiFunction;
 
 import com.github.phantomthief.collection.BufferTrigger;
+import com.github.phantomthief.collection.impl.SimpleBufferTrigger.TriggerResult;
 import com.github.phantomthief.collection.impl.SimpleBufferTrigger.TriggerStrategy;
 import com.github.phantomthief.util.ThrowableConsumer;
 
@@ -78,7 +79,7 @@ public class GenericSimpleBufferTriggerBuilder<E, C> {
              * always align to the first trig time
              */
             @Override
-            public SimpleBufferTrigger.TriggerResult canTrigger(long last, long change) {
+            public TriggerResult canTrigger(long last, long change) {
                 long alignTime = time.get();
                 long intervalInMs = unit.toMillis(interval);
                 long now = currentTimeMillis();

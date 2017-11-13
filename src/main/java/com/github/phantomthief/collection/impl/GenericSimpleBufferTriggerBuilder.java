@@ -1,5 +1,11 @@
 package com.github.phantomthief.collection.impl;
 
+import static com.github.phantomthief.collection.impl.SimpleBufferTrigger.TriggerResult.trig;
+import static com.github.phantomthief.util.MoreSuppliers.lazy;
+import static com.google.common.math.LongMath.divide;
+import static java.lang.System.currentTimeMillis;
+import static java.math.RoundingMode.UP;
+
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
@@ -8,6 +14,9 @@ import java.util.function.Consumer;
 import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 import java.util.function.ToIntBiFunction;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.github.phantomthief.collection.BufferTrigger;
 import com.github.phantomthief.collection.impl.SimpleBufferTrigger.TriggerStrategy;
@@ -18,6 +27,8 @@ import com.github.phantomthief.util.ThrowableConsumer;
  */
 public class GenericSimpleBufferTriggerBuilder<E, C> {
 
+    private static final Logger logger = LoggerFactory
+            .getLogger(GenericSimpleBufferTriggerBuilder.class);
     private final SimpleBufferTriggerBuilder<Object, Object> builder;
 
     public GenericSimpleBufferTriggerBuilder(SimpleBufferTriggerBuilder<Object, Object> builder) {
@@ -59,6 +70,26 @@ public class GenericSimpleBufferTriggerBuilder<E, C> {
     public GenericSimpleBufferTriggerBuilder<E, C>
             triggerStrategy(TriggerStrategy triggerStrategy) {
         builder.triggerStrategy(triggerStrategy);
+        return this;
+    }
+
+    public GenericSimpleBufferTriggerBuilder<E, C> intervalAtFixedRate(long interval,
+            TimeUnit unit) {
+        builder.triggerStrategy(new TriggerStrategy() {
+
+            private final Supplier<Long> time = lazy(() -> currentTimeMillis());
+
+            @Override
+            public SimpleBufferTrigger.TriggerResult canTrigger(long last, long change) {
+                // always align to the first trig time
+                Long alignTime = time.get();
+                long fixed = unit.toMillis(interval);
+                long now = currentTimeMillis();
+                long intervalIndex = divide((now - alignTime), fixed, UP);
+                long intervalInMs = alignTime + fixed * intervalIndex - now;
+                return trig(change > 0, intervalInMs);
+            }
+        });
         return this;
     }
 

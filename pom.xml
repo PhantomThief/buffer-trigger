@@ -9,9 +9,9 @@
     </prerequisites>
 
     <properties>
-        <junit-jupiter.version>5.0.1</junit-jupiter.version>
+        <junit-jupiter.version>5.0.2</junit-jupiter.version>
         <logback-classic.version>1.1.8</logback-classic.version>
-        <junit-platform.version>1.0.1</junit-platform.version>
+        <junit-platform.version>1.0.2</junit-platform.version>
 
         <coveralls-maven-plugin.version>4.3.0</coveralls-maven-plugin.version>
         <jacoco-maven-plugin.version>0.7.9</jacoco-maven-plugin.version>

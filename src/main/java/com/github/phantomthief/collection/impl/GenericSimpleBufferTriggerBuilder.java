@@ -81,9 +81,6 @@ public class GenericSimpleBufferTriggerBuilder<E, C> {
                 long alignTime = time.get();
                 long intervalInMs = unit.toMillis(interval);
                 long result = intervalInMs - (currentTimeMillis() - alignTime) % intervalInMs;
-                if (result == 0) {
-                    result = intervalInMs;
-                }
                 return trig(change > 0, result);
             }
         });

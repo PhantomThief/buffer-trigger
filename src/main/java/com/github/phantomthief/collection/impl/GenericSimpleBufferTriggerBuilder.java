@@ -1,5 +1,9 @@
 package com.github.phantomthief.collection.impl;
 
+import static com.github.phantomthief.collection.impl.SimpleBufferTrigger.TriggerResult.trig;
+import static com.github.phantomthief.util.MoreSuppliers.lazy;
+import static java.lang.System.currentTimeMillis;
+
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
@@ -10,6 +14,7 @@ import java.util.function.Supplier;
 import java.util.function.ToIntBiFunction;
 
 import com.github.phantomthief.collection.BufferTrigger;
+import com.github.phantomthief.collection.impl.SimpleBufferTrigger.TriggerResult;
 import com.github.phantomthief.collection.impl.SimpleBufferTrigger.TriggerStrategy;
 import com.github.phantomthief.util.ThrowableConsumer;
 
@@ -59,6 +64,26 @@ public class GenericSimpleBufferTriggerBuilder<E, C> {
     public GenericSimpleBufferTriggerBuilder<E, C>
             triggerStrategy(TriggerStrategy triggerStrategy) {
         builder.triggerStrategy(triggerStrategy);
+        return this;
+    }
+
+    public GenericSimpleBufferTriggerBuilder<E, C> intervalAtFixedRate(long interval,
+            TimeUnit unit) {
+        builder.triggerStrategy(new TriggerStrategy() {
+
+            private final Supplier<Long> time = lazy(System::currentTimeMillis);
+
+            /**
+             * always align to the first trig time
+             */
+            @Override
+            public TriggerResult canTrigger(long last, long change) {
+                long alignTime = time.get();
+                long intervalInMs = unit.toMillis(interval);
+                long result = intervalInMs - (currentTimeMillis() - alignTime) % intervalInMs;
+                return trig(change > 0, result);
+            }
+        });
         return this;
     }
 

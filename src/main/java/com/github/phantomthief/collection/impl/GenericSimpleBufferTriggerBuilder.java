@@ -2,9 +2,7 @@ package com.github.phantomthief.collection.impl;
 
 import static com.github.phantomthief.collection.impl.SimpleBufferTrigger.TriggerResult.trig;
 import static com.github.phantomthief.util.MoreSuppliers.lazy;
-import static com.google.common.math.LongMath.divide;
 import static java.lang.System.currentTimeMillis;
-import static java.math.RoundingMode.UP;
 
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -82,9 +80,7 @@ public class GenericSimpleBufferTriggerBuilder<E, C> {
             public TriggerResult canTrigger(long last, long change) {
                 long alignTime = time.get();
                 long intervalInMs = unit.toMillis(interval);
-                long now = currentTimeMillis();
-                long perInterval = divide((now - alignTime), intervalInMs, UP);
-                long result = alignTime + intervalInMs * perInterval - now;
+                long result = intervalInMs - (currentTimeMillis() - alignTime) % intervalInMs;
                 if (result == 0) {
                     result = intervalInMs;
                 }

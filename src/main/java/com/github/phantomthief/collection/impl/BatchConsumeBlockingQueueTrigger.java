@@ -48,8 +48,8 @@ public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
         this.consumer = consumer;
         this.exceptionHandler = exceptionHandler;
         this.scheduledExecutorService = scheduledExecutorService;
-        this.scheduledExecutorService.schedule(new BatchConsumerRunnable(),
-                this.lingerMs, MILLISECONDS);
+        this.scheduledExecutorService.schedule(new BatchConsumerRunnable(), this.lingerMs,
+                MILLISECONDS);
     }
 
     /**
@@ -76,8 +76,7 @@ public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
             runWithTryLock(lock, () -> {
                 if (queue.size() >= batchSize) {
                     if (!running.get()) { // prevent repeat enqueue
-                        this.scheduledExecutorService
-                                .execute(() -> doBatchConsumer(TriggerType.ENQUEUE));
+                        this.scheduledExecutorService.execute(() -> doBatchConsumer(TriggerType.ENQUEUE));
                         running.set(true);
                     }
                 }

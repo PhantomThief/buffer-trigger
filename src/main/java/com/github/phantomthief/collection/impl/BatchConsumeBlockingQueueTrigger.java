@@ -48,8 +48,8 @@ public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
         this.consumer = consumer;
         this.exceptionHandler = exceptionHandler;
         this.scheduledExecutorService = scheduledExecutorService;
-        this.scheduledExecutorService.schedule(new BatchConsumerRunnable(), this.lingerMs,
-                MILLISECONDS);
+        this.scheduledExecutorService.schedule(new BatchConsumerRunnable(),
+                this.lingerMs, MILLISECONDS);
     }
 
     /**
@@ -76,7 +76,8 @@ public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
             runWithTryLock(lock, () -> {
                 if (queue.size() >= batchSize) {
                     if (!running.get()) { // prevent repeat enqueue
-                        this.scheduledExecutorService.execute(() -> doBatchConsumer(TriggerType.ENQUEUE));
+                        this.scheduledExecutorService
+                                .execute(() -> doBatchConsumer(TriggerType.ENQUEUE));
                         running.set(true);
                     }
                 }
@@ -94,13 +95,13 @@ public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
             try {
                 running.set(true);
                 while (!queue.isEmpty()) {
+                    if (type == TriggerType.ENQUEUE && queue.size() < batchSize) {
+                        return;
+                    }
                     List<E> toConsumeData = new ArrayList<>(min(batchSize, queue.size()));
                     queue.drainTo(toConsumeData, batchSize);
                     if (!toConsumeData.isEmpty()) {
-                        if (logger.isDebugEnabled()) {
-                            logger.debug("do batch consumer:{}, size:{}", type,
-                                    toConsumeData.size());
-                        }
+                        logger.debug("do batch consumer:{}, size:{}", type, toConsumeData.size());
                         doConsume(toConsumeData);
                     }
                 }

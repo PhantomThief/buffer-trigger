@@ -111,8 +111,8 @@ public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
                             logger.debug("do batch consumer:{}, size:{}", type,
                                     toConsumeData.size());
                         }
-                        doConsume(toConsumeData);
                         consumedSize += toConsumeData.size();
+                        doConsume(toConsumeData);
                     }
                 }
             } finally {

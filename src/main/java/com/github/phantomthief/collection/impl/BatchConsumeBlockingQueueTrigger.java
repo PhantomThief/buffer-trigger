@@ -76,7 +76,7 @@ public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
             runWithTryLock(lock, () -> {
                 if (queue.size() >= batchSize) {
                     if (!running.get()) { // prevent repeat enqueue
-                        this.scheduledExecutorService.execute(this::doBatchConsumer);
+                        this.scheduledExecutorService.execute(() -> doBatchConsumer(TriggerType.ENQUEUE));
                         running.set(true);
                     }
                 }
@@ -86,10 +86,10 @@ public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
 
     @Override
     public void manuallyDoTrigger() {
-        doBatchConsumer();
+        doBatchConsumer(TriggerType.MANUALLY);
     }
 
-    private void doBatchConsumer() {
+    private void doBatchConsumer(TriggerType type) {
         runWithLock(lock, () -> {
             try {
                 running.set(true);
@@ -97,6 +97,10 @@ public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
                     List<E> toConsumeData = new ArrayList<>(min(batchSize, queue.size()));
                     queue.drainTo(toConsumeData, batchSize);
                     if (!toConsumeData.isEmpty()) {
+                        if (logger.isDebugEnabled()) {
+                            logger.debug("do batch consumer:{}, size:{}", type,
+                                    toConsumeData.size());
+                        }
                         doConsume(toConsumeData);
                     }
                 }
@@ -127,7 +131,7 @@ public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
         @Override
         public void run() {
             try {
-                doBatchConsumer();
+                doBatchConsumer(TriggerType.LINGER);
             } finally {
                 scheduledExecutorService.schedule(this, lingerMs, MILLISECONDS);
             }
@@ -137,5 +141,12 @@ public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
     @Override
     public long getPendingChanges() {
         return queue.size();
+    }
+
+    /**
+     * just for log and debug
+     */
+    private enum TriggerType {
+        LINGER, ENQUEUE, MANUALLY
     }
 }

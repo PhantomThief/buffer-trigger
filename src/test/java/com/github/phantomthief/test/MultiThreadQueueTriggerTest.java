@@ -4,13 +4,15 @@ import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterrup
 import static java.util.Collections.synchronizedSet;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.github.phantomthief.collection.BufferTrigger;
 
@@ -19,12 +21,13 @@ import com.github.phantomthief.collection.BufferTrigger;
  */
 class MultiThreadQueueTriggerTest {
 
+    private static final Logger logger = LoggerFactory.getLogger(MultiThreadQueueTriggerTest.class);
     private Set<String> deal;
 
     @Test
     void test() {
         BufferTrigger<String> buffer = BufferTrigger.<String> batchBlocking() //
-                .batchConsumerSize(3) //
+                .batchSize(3) //
                 .setConsumerEx(this::delay) //
                 .build();
         Set<String> allData = synchronizedSet(new HashSet<>());
@@ -32,23 +35,23 @@ class MultiThreadQueueTriggerTest {
 
         for (int i = 0; i < 20; i++) {
             String e = "e:" + i;
-            System.out.println("enqueue:" + e);
+            logger.info("enqueue:{}", e);
             buffer.enqueue(e);
             allData.add(e);
         }
-        System.out.println("after enqueue.");
+        logger.info("after enqueue.");
         sleepUninterruptibly(1, SECONDS);
 
-        System.out.println("do manually");
+        logger.info("do manually");
         buffer.manuallyDoTrigger();
-        System.out.println("after do manually");
-        assertTrue(deal.equals(allData));
+        logger.info("after do manually");
+        assertEquals(deal, allData);
     }
 
     @Test
     void test2() {
         BufferTrigger<String> buffer = BufferTrigger.<String> batchBlocking() //
-                .batchConsumerSize(3) //
+                .batchSize(3) //
                 .setConsumerEx(this::delay) //
                 .linger(10, MILLISECONDS) //
                 .build();
@@ -57,18 +60,18 @@ class MultiThreadQueueTriggerTest {
 
         for (int i = 0; i < 30; i++) {
             String e = "e:" + i;
-            System.out.println("enqueue:" + e);
+            logger.info("enqueue:{}", e);
             buffer.enqueue(e);
             allData.add(e);
             sleepUninterruptibly(10, MILLISECONDS);
         }
-        System.out.println("after enqueue.");
+        logger.info("after enqueue.");
         sleepUninterruptibly(1, SECONDS);
 
-        System.out.println("do manually");
+        logger.info("do manually");
         buffer.manuallyDoTrigger();
-        System.out.println("after do manually");
-        assertTrue(deal.equals(allData));
+        logger.info("after do manually");
+        assertEquals(deal, allData);
     }
 
     @Test
@@ -84,24 +87,24 @@ class MultiThreadQueueTriggerTest {
 
         for (int i = 0; i < 30; i++) {
             String e = "e:" + i;
-            System.out.println("enqueue:" + e);
+            logger.info("enqueue:{}", e);
             buffer.enqueue(e);
             allData.add(e);
             sleepUninterruptibly(10, MILLISECONDS);
         }
-        System.out.println("after enqueue.");
+        logger.info("after enqueue.");
         sleepUninterruptibly(1, SECONDS);
 
-        System.out.println("do manually");
+        logger.info("do manually");
         buffer.manuallyDoTrigger();
-        System.out.println("after do manually");
-        assertTrue(deal.equals(allData));
+        logger.info("after do manually");
+        assertEquals(deal, allData);
     }
 
     private void delay(Collection<String> obj) {
-        System.out.println("delayed:" + obj);
+        logger.info("delayed:{}", obj);
         sleepUninterruptibly(2, SECONDS);
         deal.addAll(obj);
-        System.out.println("after:" + obj);
+        logger.info("after:{}", obj);
     }
 }

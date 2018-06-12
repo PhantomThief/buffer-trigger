@@ -94,6 +94,9 @@ public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
             try {
                 running.set(true);
                 while (!queue.isEmpty()) {
+                    if (type == TriggerType.ENQUEUE && queue.size() < batchSize) {
+                        return;
+                    }
                     List<E> toConsumeData = new ArrayList<>(min(batchSize, queue.size()));
                     queue.drainTo(toConsumeData, batchSize);
                     if (!toConsumeData.isEmpty()) {

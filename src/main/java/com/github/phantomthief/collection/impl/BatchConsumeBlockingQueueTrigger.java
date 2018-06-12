@@ -93,9 +93,16 @@ public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
         runWithLock(lock, () -> {
             try {
                 running.set(true);
+                int queueSizeBeforeConsumer = queue.size();
+                int consumedSize = 0;
                 while (!queue.isEmpty()) {
-                    if (type == TriggerType.ENQUEUE && queue.size() < batchSize) {
-                        return;
+                    if (queue.size() < batchSize) {
+                        if (type == TriggerType.ENQUEUE) {
+                            return;
+                        } else if (type == TriggerType.LINGER
+                                && consumedSize >= queueSizeBeforeConsumer) {
+                            return;
+                        }
                     }
                     List<E> toConsumeData = new ArrayList<>(min(batchSize, queue.size()));
                     queue.drainTo(toConsumeData, batchSize);
@@ -105,6 +112,7 @@ public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
                                     toConsumeData.size());
                         }
                         doConsume(toConsumeData);
+                        consumedSize += toConsumeData.size();
                     }
                 }
             } finally {

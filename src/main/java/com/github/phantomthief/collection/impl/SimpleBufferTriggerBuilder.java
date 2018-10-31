@@ -40,6 +40,7 @@ public class SimpleBufferTriggerBuilder<E, C> {
     private BiConsumer<Throwable, C> exceptionHandler;
     private long maxBufferCount = -1;
     private Consumer<E> rejectHandler;
+    private String name;
 
     /**
      * <b>warning:</b> the container must be thread-safed.
@@ -160,6 +161,14 @@ public class SimpleBufferTriggerBuilder<E, C> {
         return thisBuilder;
     }
 
+    /**
+     * use for debug and stats, like trigger thread's name.
+     */
+    public SimpleBufferTriggerBuilder<E, C> name(String name) {
+        this.name = name;
+        return this;
+    }
+
     public <E1> BufferTrigger<E1> build() {
         return new LazyBufferTrigger<>(() -> {
             ensure();
@@ -189,8 +198,10 @@ public class SimpleBufferTriggerBuilder<E, C> {
     }
 
     private ScheduledExecutorService makeScheduleExecutor() {
+        String threadPattern = name == null ? "pool-simple-buffer-trigger-thread-%d" : "pool-simple-buffer-trigger-thread-["
+                + name + "]";
         return newSingleThreadScheduledExecutor(
-                new ThreadFactoryBuilder().setNameFormat("pool-simple-buffer-trigger-thread-%d") //
+                new ThreadFactoryBuilder().setNameFormat(threadPattern) //
                         .setDaemon(true) //
                         .build());
     }

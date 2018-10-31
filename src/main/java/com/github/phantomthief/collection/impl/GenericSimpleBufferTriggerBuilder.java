@@ -129,6 +129,14 @@ public class GenericSimpleBufferTriggerBuilder<E, C> {
         return this;
     }
 
+    /**
+     * use for debug and stats, like trigger thread's name.
+     */
+    public GenericSimpleBufferTriggerBuilder<E, C> name(String name) {
+        builder.name(name);
+        return this;
+    }
+
     public BufferTrigger<E> build() {
         return builder.build();
     }

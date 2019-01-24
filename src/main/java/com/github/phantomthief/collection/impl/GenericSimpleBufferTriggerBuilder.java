@@ -13,6 +13,8 @@ import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 import java.util.function.ToIntBiFunction;
 
+import javax.annotation.CheckReturnValue;
+
 import com.github.phantomthief.collection.BufferTrigger;
 import com.github.phantomthief.collection.impl.SimpleBufferTrigger.TriggerResult;
 import com.github.phantomthief.collection.impl.SimpleBufferTrigger.TriggerStrategy;
@@ -34,6 +36,7 @@ public class GenericSimpleBufferTriggerBuilder<E, C> {
      *
      * @param queueAdder return if there is a change occurred.
      */
+    @CheckReturnValue
     public GenericSimpleBufferTriggerBuilder<E, C> setContainer(Supplier<? extends C> factory,
             BiPredicate<? super C, ? super E> queueAdder) {
         builder.setContainer(factory, queueAdder);
@@ -43,30 +46,35 @@ public class GenericSimpleBufferTriggerBuilder<E, C> {
     /**
      * @param queueAdder return the change size occurred.
      */
+    @CheckReturnValue
     public GenericSimpleBufferTriggerBuilder<E, C> setContainerEx(Supplier<? extends C> factory,
             ToIntBiFunction<? super C, ? super E> queueAdder) {
         builder.setContainerEx(factory, queueAdder);
         return this;
     }
 
+    @CheckReturnValue
     public GenericSimpleBufferTriggerBuilder<E, C>
             setScheduleExecutorService(ScheduledExecutorService scheduledExecutorService) {
         builder.setScheduleExecutorService(scheduledExecutorService);
         return this;
     }
 
+    @CheckReturnValue
     public GenericSimpleBufferTriggerBuilder<E, C>
             setExceptionHandler(BiConsumer<? super Throwable, ? super C> exceptionHandler) {
         builder.setExceptionHandler(exceptionHandler);
         return this;
     }
 
+    @CheckReturnValue
     public GenericSimpleBufferTriggerBuilder<E, C>
             triggerStrategy(TriggerStrategy triggerStrategy) {
         builder.triggerStrategy(triggerStrategy);
         return this;
     }
 
+    @CheckReturnValue
     public GenericSimpleBufferTriggerBuilder<E, C> intervalAtFixedRate(long interval,
             TimeUnit unit) {
         builder.triggerStrategy(new TriggerStrategy() {
@@ -91,38 +99,55 @@ public class GenericSimpleBufferTriggerBuilder<E, C> {
      * use {@link #interval(long, TimeUnit)} or {@link #triggerStrategy}
      */
     @Deprecated
+    @CheckReturnValue
     public GenericSimpleBufferTriggerBuilder<E, C> on(long interval, TimeUnit unit, long count) {
         builder.on(interval, unit, count);
         return this;
     }
 
+    @CheckReturnValue
     public GenericSimpleBufferTriggerBuilder<E, C> interval(long interval, TimeUnit unit) {
         builder.interval(interval, unit);
         return this;
     }
 
+    @CheckReturnValue
     public GenericSimpleBufferTriggerBuilder<E, C> interval(LongSupplier interval, TimeUnit unit) {
         builder.interval(interval, unit);
         return this;
     }
 
+    @CheckReturnValue
     public GenericSimpleBufferTriggerBuilder<E, C>
             consumer(ThrowableConsumer<? super C, Throwable> consumer) {
         builder.consumer(consumer);
         return this;
     }
 
+    @CheckReturnValue
     public GenericSimpleBufferTriggerBuilder<E, C> maxBufferCount(long count) {
         builder.maxBufferCount(count);
         return this;
     }
 
+    /**
+     * disable internal switch lock for much more performances.
+     * while it may make conflicts on enqueue and consumer logic.
+     */
+    @CheckReturnValue
+    public GenericSimpleBufferTriggerBuilder<E, C> disableSwitchLock() {
+        builder.disableSwitchLock();
+        return this;
+    }
+
+    @CheckReturnValue
     public GenericSimpleBufferTriggerBuilder<E, C> maxBufferCount(long count,
             Consumer<? super E> rejectHandler) {
         builder.maxBufferCount(count, rejectHandler);
         return this;
     }
 
+    @CheckReturnValue
     public GenericSimpleBufferTriggerBuilder<E, C>
             rejectHandler(Consumer<? super E> rejectHandler) {
         builder.rejectHandler(rejectHandler);
@@ -132,6 +157,7 @@ public class GenericSimpleBufferTriggerBuilder<E, C> {
     /**
      * use for debug and stats, like trigger thread's name.
      */
+    @CheckReturnValue
     public GenericSimpleBufferTriggerBuilder<E, C> name(String name) {
         builder.name(name);
         return this;

@@ -7,6 +7,7 @@ import static java.util.concurrent.TimeUnit.DAYS;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.IdentityHashMap;
 import java.util.Map;
@@ -19,6 +20,8 @@ import org.junit.jupiter.api.Test;
 
 import com.github.phantomthief.collection.BufferTrigger;
 import com.github.phantomthief.collection.impl.SimpleBufferTrigger;
+import com.github.phantomthief.util.ThrowableConsumer;
+import com.google.common.util.concurrent.AtomicLongMap;
 
 /**
  * @author w.vela
@@ -71,5 +74,33 @@ class ConflictReadWriteTest {
             executorService.execute(() -> bufferTrigger.enqueue(1));
         }
         shutdownAndAwaitTermination(executorService, 1, DAYS);
+    }
+
+    @Disabled
+    @Test
+    void testNoLock() {
+        boolean[] success = { false };
+        ThrowableConsumer<AtomicLongMap<String>, Throwable> consumer = it -> {
+            assertEquals(1000, it.get("s1"));
+            assertEquals(100, it.get("s2"));
+            success[0] = true;
+        };
+        BufferTrigger<String> bufferTrigger = BufferTrigger.<String, AtomicLongMap<String>> simple() //
+                                                                                                     .setContainer(AtomicLongMap::create, (c, e) -> {
+                    c.incrementAndGet(e);
+                    return true;
+                }) //
+                                                                                                     .disableSwitchLock() //
+                                                                                                     .interval(1, SECONDS) //
+                                                                                                     .consumer(consumer) //
+                                                                                                     .build();
+        for (int i = 0; i < 1000; i++) {
+            bufferTrigger.enqueue("s1");
+        }
+        for (int i = 0; i < 100; i++) {
+            bufferTrigger.enqueue("s2");
+        }
+        bufferTrigger.manuallyDoTrigger();
+        assertTrue(success[0]);
     }
 }

@@ -27,18 +27,18 @@ import com.github.phantomthief.util.ThrowableConsumer;
 /**
  * @author w.vela
  */
-public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
+public class SimpleBufferTrigger<E, C> implements BufferTrigger<E> {
 
     private static final Logger logger = getLogger(SimpleBufferTrigger.class);
 
     private static final long DEFAULT_NEXT_TRIGGER_PERIOD = TimeUnit.SECONDS.toMillis(1);
 
     private final AtomicLong counter = new AtomicLong();
-    private final ThrowableConsumer<Object, Throwable> consumer;
-    private final ToIntBiFunction<Object, E> queueAdder;
-    private final Supplier<Object> bufferFactory;
-    private final BiConsumer<Throwable, Object> exceptionHandler;
-    private final AtomicReference<Object> buffer = new AtomicReference<>();
+    private final ThrowableConsumer<C, Throwable> consumer;
+    private final ToIntBiFunction<C, E> queueAdder;
+    private final Supplier<C> bufferFactory;
+    private final BiConsumer<Throwable, C> exceptionHandler;
+    private final AtomicReference<C> buffer = new AtomicReference<>();
     private final long maxBufferCount;
     private final Consumer<E> rejectHandler;
     private final ReadLock readLock;
@@ -46,23 +46,24 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
 
     private volatile long lastConsumeTimestamp = currentTimeMillis();
 
-    SimpleBufferTrigger(Supplier<Object> bufferFactory, ToIntBiFunction<Object, E> queueAdder,
-            ScheduledExecutorService scheduledExecutorService,
-            ThrowableConsumer<Object, Throwable> consumer,
-            TriggerStrategy triggerStrategy, BiConsumer<Throwable, Object> exceptionHandler,
-            long maxBufferCount, Consumer<E> rejectHandler) {
-        this.queueAdder = queueAdder;
-        this.bufferFactory = bufferFactory;
-        this.consumer = consumer;
-        this.exceptionHandler = exceptionHandler;
-        this.maxBufferCount = maxBufferCount;
-        this.rejectHandler = rejectHandler;
+    SimpleBufferTrigger(SimpleBufferTriggerBuilder<E, C> builder) {
+        this.queueAdder = builder.queueAdder;
+        this.bufferFactory = builder.bufferFactory;
+        this.consumer = builder.consumer;
+        this.exceptionHandler = builder.exceptionHandler;
+        this.maxBufferCount = builder.maxBufferCount;
+        this.rejectHandler = builder.rejectHandler;
         this.buffer.set(this.bufferFactory.get());
-        ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
-        readLock = lock.readLock();
-        writeLock = lock.writeLock();
-        scheduledExecutorService.schedule(
-                new TriggerRunnable(scheduledExecutorService, triggerStrategy),
+        if (!builder.disableSwitchLock) {
+            ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
+            readLock = lock.readLock();
+            writeLock = lock.writeLock();
+        } else {
+            readLock = null;
+            writeLock = null;
+        }
+        builder.scheduledExecutorService.schedule(
+                new TriggerRunnable(builder.scheduledExecutorService, builder.triggerStrategy),
                 DEFAULT_NEXT_TRIGGER_PERIOD, MILLISECONDS);
     }
 
@@ -101,14 +102,16 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
             return;
         }
         boolean locked = false;
-        try {
-            readLock.lock();
-            locked = true;
-        } catch (Throwable e) {
-            // ignore lock failed
+        if (readLock != null) {
+            try {
+                readLock.lock();
+                locked = true;
+            } catch (Throwable e) {
+                // ignore lock failed
+            }
         }
         try {
-            Object thisBuffer = buffer.get();
+            C thisBuffer = buffer.get();
             int changedCount = queueAdder.applyAsInt(thisBuffer, element);
             if (changedCount > 0) {
                 counter.addAndGet(changedCount);
@@ -128,14 +131,18 @@ public class SimpleBufferTrigger<E> implements BufferTrigger<E> {
     }
 
     private void doConsume() {
-        Object old = null;
+        C old = null;
         try {
-            writeLock.lock();
+            if (writeLock != null) {
+                writeLock.lock();
+            }
             try {
                 old = buffer.getAndSet(bufferFactory.get());
             } finally {
                 counter.set(0);
-                writeLock.unlock();
+                if (writeLock != null) {
+                    writeLock.unlock();
+                }
             }
             if (old != null) {
                 consumer.accept(old);

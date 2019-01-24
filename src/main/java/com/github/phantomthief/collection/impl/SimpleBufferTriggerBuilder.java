@@ -32,15 +32,16 @@ public class SimpleBufferTriggerBuilder<E, C> {
 
     private static final Logger logger = LoggerFactory.getLogger(SimpleBufferTriggerBuilder.class);
 
-    private TriggerStrategy triggerStrategy;
-    private ScheduledExecutorService scheduledExecutorService;
-    private Supplier<C> bufferFactory;
-    private ToIntBiFunction<C, E> queueAdder;
-    private ThrowableConsumer<C, Throwable> consumer;
-    private BiConsumer<Throwable, C> exceptionHandler;
-    private long maxBufferCount = -1;
-    private Consumer<E> rejectHandler;
-    private String name;
+    TriggerStrategy triggerStrategy;
+    ScheduledExecutorService scheduledExecutorService;
+    Supplier<C> bufferFactory;
+    ToIntBiFunction<C, E> queueAdder;
+    ThrowableConsumer<C, Throwable> consumer;
+    BiConsumer<Throwable, C> exceptionHandler;
+    long maxBufferCount = -1;
+    Consumer<E> rejectHandler;
+    String name;
+    boolean disableSwitchLock;
 
     /**
      * <b>warning:</b> the container must be thread-safed.
@@ -86,6 +87,11 @@ public class SimpleBufferTriggerBuilder<E, C> {
         SimpleBufferTriggerBuilder<E1, C1> thisBuilder = (SimpleBufferTriggerBuilder<E1, C1>) this;
         thisBuilder.exceptionHandler = (BiConsumer<Throwable, C1>) exceptionHandler;
         return thisBuilder;
+    }
+
+    public SimpleBufferTriggerBuilder<E, C> disableSwitchLock() {
+        this.disableSwitchLock = true;
+        return this;
     }
 
     public SimpleBufferTriggerBuilder<E, C> triggerStrategy(TriggerStrategy triggerStrategy) {
@@ -172,11 +178,8 @@ public class SimpleBufferTriggerBuilder<E, C> {
     public <E1> BufferTrigger<E1> build() {
         return new LazyBufferTrigger<>(() -> {
             ensure();
-            return new SimpleBufferTrigger<>((Supplier<Object>) bufferFactory,
-                    (ToIntBiFunction<Object, E1>) queueAdder, scheduledExecutorService,
-                    (ThrowableConsumer<Object, Throwable>) consumer, triggerStrategy,
-                    (BiConsumer<Throwable, Object>) exceptionHandler, maxBufferCount,
-                    (Consumer<E1>) rejectHandler);
+            SimpleBufferTriggerBuilder<E1, C> builder = (SimpleBufferTriggerBuilder<E1, C>) SimpleBufferTriggerBuilder.this;
+            return new SimpleBufferTrigger<>(builder);
         });
     }
 

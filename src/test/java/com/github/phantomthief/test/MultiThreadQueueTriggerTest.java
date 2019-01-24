@@ -26,7 +26,7 @@ class MultiThreadQueueTriggerTest {
 
     @Test
     void test() {
-        BufferTrigger<String> buffer = BufferTrigger.<String> batchBlocking() //
+        BufferTrigger<String> buffer = BufferTrigger.batchBlockingTrigger() //
                 .batchSize(3) //
                 .setConsumerEx(this::delay) //
                 .build();

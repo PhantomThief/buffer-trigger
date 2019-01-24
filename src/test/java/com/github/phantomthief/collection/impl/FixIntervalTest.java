@@ -28,7 +28,7 @@ class FixIntervalTest {
     @Test
     void testDelayMode() {
         logger.info("start.");
-        BufferTrigger<String> trigger = BufferTrigger.<String, Set<String>> simple() //
+        BufferTrigger<String> trigger = BufferTrigger.simpleTrigger() //
                 .interval(INTERVAL, SECONDS) //
                 .setContainer(HashSet::new, Set::add) //
                 .consumer(this::consumerDelay) //

@@ -53,9 +53,9 @@
     </licenses>
 
     <scm>
-        <connection>scm:git:https://github.com/PhantomThief/buffer-trigger.git</connection>
+        <connection>scm:git:git@github.com:PhantomThief/buffer-trigger.git</connection>
         <url>https://github.com/PhantomThief/buffer-trigger.git</url>
-        <developerConnection>scm:git:https://github.com/PhantomThief/buffer-trigger.git
+        <developerConnection>scm:git:git@github.com:PhantomThief/buffer-trigger.git
         </developerConnection>
     </scm>
 

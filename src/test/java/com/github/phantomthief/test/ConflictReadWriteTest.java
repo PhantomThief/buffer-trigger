@@ -36,7 +36,7 @@ class ConflictReadWriteTest {
     void test() {
         Random random = new Random();
         BufferTrigger<Integer> bufferTrigger = SimpleBufferTrigger
-                .<Integer, AtomicInteger> newGenericBuilder().on(5, SECONDS, 1) //
+                .<Integer, AtomicInteger> newGenericBuilder().on(5, SECONDS, 1)
                 .setContainerEx(AtomicInteger::new, (e, c) -> {
                     AtomicInteger atomicInteger;
                     synchronized (counter) {
@@ -50,7 +50,7 @@ class ConflictReadWriteTest {
                         atomicInteger.decrementAndGet();
                     }
                     return 1;
-                }) //
+                })
                 .consumer(container -> {
                     System.out.println(
                             "start consume:" + container.hashCode() + ", size:" + container.get());
@@ -67,7 +67,7 @@ class ConflictReadWriteTest {
                     assertEquals(0, atomicInteger.get());
                     System.out.println(
                             "end consume:" + container.hashCode() + ", size:" + container.get());
-                }) //
+                })
                 .build();
         ExecutorService executorService = newFixedThreadPool(20);
         for (int i = 0; i < 100000; i++) {
@@ -85,14 +85,14 @@ class ConflictReadWriteTest {
             assertEquals(100, it.get("s2"));
             success[0] = true;
         };
-        BufferTrigger<String> bufferTrigger = BufferTrigger.<String, AtomicLongMap<String>> simple() //
+        BufferTrigger<String> bufferTrigger = BufferTrigger.<String, AtomicLongMap<String>> simple()
                                                                                                      .setContainer(AtomicLongMap::create, (c, e) -> {
                     c.incrementAndGet(e);
                     return true;
-                }) //
-                                                                                                     .disableSwitchLock() //
-                                                                                                     .interval(1, SECONDS) //
-                                                                                                     .consumer(consumer) //
+                })
+                                                                                                     .disableSwitchLock()
+                                                                                                     .interval(1, SECONDS)
+                                                                                                     .consumer(consumer)
                                                                                                      .build();
         for (int i = 0; i < 1000; i++) {
             bufferTrigger.enqueue("s1");

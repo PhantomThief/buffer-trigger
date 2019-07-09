@@ -26,9 +26,9 @@ class MultiThreadQueueTriggerTest {
 
     @Test
     void test() {
-        BufferTrigger<String> buffer = BufferTrigger.batchBlockingTrigger() //
-                .batchSize(3) //
-                .setConsumerEx(this::delay) //
+        BufferTrigger<String> buffer = BufferTrigger.batchBlockingTrigger()
+                .batchSize(3)
+                .setConsumerEx(this::delay)
                 .build();
         Set<String> allData = synchronizedSet(new HashSet<>());
         deal = synchronizedSet(new HashSet<>());
@@ -50,10 +50,10 @@ class MultiThreadQueueTriggerTest {
 
     @Test
     void test2() {
-        BufferTrigger<String> buffer = BufferTrigger.<String> batchBlocking() //
-                .batchSize(3) //
-                .setConsumerEx(this::delay) //
-                .linger(10, MILLISECONDS) //
+        BufferTrigger<String> buffer = BufferTrigger.<String> batchBlocking()
+                .batchSize(3)
+                .setConsumerEx(this::delay)
+                .linger(10, MILLISECONDS)
                 .build();
         Set<String> allData = synchronizedSet(new HashSet<>());
         deal = synchronizedSet(new HashSet<>());
@@ -76,11 +76,11 @@ class MultiThreadQueueTriggerTest {
 
     @Test
     void test3() {
-        BufferTrigger<String> buffer = BufferTrigger.<String> batchBlocking() //
-                .batchSize(3) //
-                .setConsumerEx(this::delay) //
-                .bufferSize(10) //
-                .linger(1, SECONDS) //
+        BufferTrigger<String> buffer = BufferTrigger.<String> batchBlocking()
+                .batchSize(3)
+                .setConsumerEx(this::delay)
+                .bufferSize(10)
+                .linger(1, SECONDS)
                 .build();
         Set<String> allData = synchronizedSet(new HashSet<>());
         deal = synchronizedSet(new HashSet<>());

@@ -27,11 +27,11 @@ class BatchBlockingConflictTrigTest {
             new LinkedBlockingQueue<>(100), new ThreadPoolExecutor.CallerRunsPolicy());
     private volatile boolean check = true;
     private volatile boolean failed;
-    private final BufferTrigger<Integer> trigger = BufferTrigger.<Integer> batchBlocking() //
-            .batchSize(100) //
-            .bufferSize(1000) //
-            .setConsumerEx(this::consumer) //
-            .linger(1, SECONDS) //
+    private final BufferTrigger<Integer> trigger = BufferTrigger.<Integer> batchBlocking()
+            .batchSize(100)
+            .bufferSize(1000)
+            .setConsumerEx(this::consumer)
+            .linger(1, SECONDS)
             .build();
 
     @Disabled

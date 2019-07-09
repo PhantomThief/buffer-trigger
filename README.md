@@ -22,13 +22,13 @@ A local data buffer with customizable data trigger
 ```Java
 
 // declare
-BufferTrigger<String> buffer = SimpleBufferTrigger.<String, Set<String>> newBuilder() //
-        .triggerStrategy(new MultiIntervalTriggerStrategy() //
-            .on(10, SECONDS, 1) //
-            .on(5, SECONDS, 10) //
-            .on(1, SECONDS, 100) //
-        ) //
-        .consumer(this::out) //
+BufferTrigger<String> buffer = SimpleBufferTrigger.<String, Set<String>> newBuilder()
+        .triggerStrategy(new MultiIntervalTriggerStrategy()
+            .on(10, SECONDS, 1)
+            .on(5, SECONDS, 10)
+            .on(1, SECONDS, 100)
+        )
+        .consumer(this::out)
         .setContainer(ConcurrentSkipListSet::new, Set::add) // default is Collections.newSetFromMap(new ConcurrentHashMap<>())
         .build();
         
@@ -41,11 +41,11 @@ private void out(Collection<String> set) {
 }
 
 // batch consumer blocking queue
-BufferTrigger<String> buffer = BatchConsumeBlockingQueueTrigger.<String> newBuilder() //
-                .batchSize(3) //
-                .setConsumerEx(this::out) //
-                .bufferSize(5) //
-                .linger(ofSeconds(2)) //
+BufferTrigger<String> buffer = BatchConsumeBlockingQueueTrigger.<String> newBuilder()
+                .batchSize(3)
+                .setConsumerEx(this::out)
+                .bufferSize(5)
+                .linger(ofSeconds(2))
                 .build();
     
 ```

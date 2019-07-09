@@ -25,16 +25,16 @@ class MultiIntervalTriggerTest {
     void test() {
         AtomicInteger assertSize = new AtomicInteger();
         BufferTrigger<Integer> bufferTrigger = SimpleBufferTrigger
-                .<Integer, Set<Interner>> newGenericBuilder() //
-                .triggerStrategy(new MultiIntervalTriggerStrategy() //
-                        .on(10, SECONDS, 1) //
-                        .on(5, SECONDS, 10) //
-                        .on(1, SECONDS, 100) //
-                ) //
+                .<Integer, Set<Interner>> newGenericBuilder()
+                .triggerStrategy(new MultiIntervalTriggerStrategy()
+                        .on(10, SECONDS, 1)
+                        .on(5, SECONDS, 10)
+                        .on(1, SECONDS, 100)
+                )
                 .consumer(set -> {
                     System.out.println("size:" + set.size());
                     assertEquals(set.size(), assertSize.get());
-                }) //
+                })
                 .build();
 
         enqueue(bufferTrigger, 100);
@@ -53,11 +53,11 @@ class MultiIntervalTriggerTest {
     @Test
     void testInvalidBuild() {
         assertThrows(IllegalArgumentException.class,
-                () -> SimpleBufferTrigger.<Integer, Set<Interner>> newGenericBuilder() //
-                        .triggerStrategy(new MultiIntervalTriggerStrategy() //
-                                .on(1, SECONDS, 1) //
-                                .on(2, SECONDS, 2) //
-                        ).consumer(set -> System.out.println("size:" + set.size())) //
+                () -> SimpleBufferTrigger.<Integer, Set<Interner>> newGenericBuilder()
+                        .triggerStrategy(new MultiIntervalTriggerStrategy()
+                                .on(1, SECONDS, 1)
+                                .on(2, SECONDS, 2)
+                        ).consumer(set -> System.out.println("size:" + set.size()))
                         .build());
     }
 

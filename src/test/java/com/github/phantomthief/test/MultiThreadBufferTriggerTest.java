@@ -22,12 +22,12 @@ class MultiThreadBufferTriggerTest {
 
     @Test
     void test() throws InterruptedException {
-        BufferTrigger<String> buffer = SimpleBufferTrigger.newBuilder() //
-                .on(3, TimeUnit.SECONDS, 1) //
-                .on(2, TimeUnit.SECONDS, 10) //
-                .on(1, TimeUnit.SECONDS, 10000) //
-                .consumer(this::out) //
-                .setContainer(ConcurrentSkipListSet::new, Set::add) //
+        BufferTrigger<String> buffer = SimpleBufferTrigger.newBuilder()
+                .on(3, TimeUnit.SECONDS, 1)
+                .on(2, TimeUnit.SECONDS, 10)
+                .on(1, TimeUnit.SECONDS, 10000)
+                .consumer(this::out)
+                .setContainer(ConcurrentSkipListSet::new, Set::add)
                 .build();
         Set<String> allData = Collections.synchronizedSet(new HashSet<>());
         dealed = Collections.synchronizedSet(new HashSet<>());
@@ -56,12 +56,12 @@ class MultiThreadBufferTriggerTest {
 
     @Test
     void test2() throws InterruptedException {
-        BufferTrigger<String> buffer = SimpleBufferTrigger.newBuilder() //
-                .on(3, TimeUnit.SECONDS, 1) //
-                .on(2, TimeUnit.SECONDS, 10) //
-                .on(1, TimeUnit.SECONDS, 10000) //
-                .setExceptionHandler((e, c) -> System.err.println(c)) //
-                .consumer(this::exception) //
+        BufferTrigger<String> buffer = SimpleBufferTrigger.newBuilder()
+                .on(3, TimeUnit.SECONDS, 1)
+                .on(2, TimeUnit.SECONDS, 10)
+                .on(1, TimeUnit.SECONDS, 10000)
+                .setExceptionHandler((e, c) -> System.err.println(c))
+                .consumer(this::exception)
                 .build();
         for (int i = 0; i < 1000; i++) {
             String e = "e:" + i;
@@ -77,10 +77,10 @@ class MultiThreadBufferTriggerTest {
 
     @Test
     void test3() throws InterruptedException {
-        BufferTrigger<String> buffer = SimpleBufferTrigger.newBuilder() //
-                .on(1, TimeUnit.SECONDS, 2) //
-                .on(2, TimeUnit.SECONDS, 1) //
-                .consumer(this::delay) //
+        BufferTrigger<String> buffer = SimpleBufferTrigger.newBuilder()
+                .on(1, TimeUnit.SECONDS, 2)
+                .on(2, TimeUnit.SECONDS, 1)
+                .consumer(this::delay)
                 .build();
         for (int i = 0; i < 10; i++) {
             String e = "e:" + i;
@@ -97,11 +97,11 @@ class MultiThreadBufferTriggerTest {
 
     @Test
     void test4() throws InterruptedException {
-        BufferTrigger<String> buffer = SimpleBufferTrigger.newBuilder() //
-                .on(1, TimeUnit.SECONDS, 1) //
-                .maxBufferCount(2) //
-                .rejectHandler(e -> System.out.println("reject:" + e)) //
-                .consumer(this::delay) //
+        BufferTrigger<String> buffer = SimpleBufferTrigger.newBuilder()
+                .on(1, TimeUnit.SECONDS, 1)
+                .maxBufferCount(2)
+                .rejectHandler(e -> System.out.println("reject:" + e))
+                .consumer(this::delay)
                 .build();
         for (int i = 0; i < 10; i++) {
             String e = "e:" + i;
@@ -132,7 +132,7 @@ class MultiThreadBufferTriggerTest {
         try {
             Thread.sleep(10);
         } catch (InterruptedException e) {
-            //
+
         }
     }
 }

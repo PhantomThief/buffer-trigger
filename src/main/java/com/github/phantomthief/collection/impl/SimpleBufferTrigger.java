@@ -85,7 +85,7 @@ public class SimpleBufferTrigger<E, C> implements BufferTrigger<E> {
     }
 
     public static SimpleBufferTriggerBuilder<Object, Map<Object, Integer>> newCounterBuilder() {
-        return new SimpleBufferTriggerBuilder<Object, Map<Object, Integer>>() //
+        return new SimpleBufferTriggerBuilder<Object, Map<Object, Integer>>()
                 .setContainer(ConcurrentHashMap::new, (map, element) -> {
                     map.merge(element, 1, Math::addExact);
                     return true;

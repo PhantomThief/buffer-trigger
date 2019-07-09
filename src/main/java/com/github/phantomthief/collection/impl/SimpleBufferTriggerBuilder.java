@@ -204,8 +204,8 @@ public class SimpleBufferTriggerBuilder<E, C> {
         String threadPattern = name == null ? "pool-simple-buffer-trigger-thread-%d" : "pool-simple-buffer-trigger-thread-["
                 + name + "]";
         return newSingleThreadScheduledExecutor(
-                new ThreadFactoryBuilder().setNameFormat(threadPattern) //
-                        .setDaemon(true) //
+                new ThreadFactoryBuilder().setNameFormat(threadPattern)
+                        .setDaemon(true)
                         .build());
     }
 }

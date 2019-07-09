@@ -23,12 +23,12 @@ class LongConsumerTest {
     @Test
     void testShort() {
         AtomicInteger counter = new AtomicInteger();
-        BufferTrigger<Long> bufferTrigger = SimpleBufferTrigger.newBuilder() //
-                .interval(1, SECONDS) //
+        BufferTrigger<Long> bufferTrigger = SimpleBufferTrigger.newBuilder()
+                .interval(1, SECONDS)
                 .consumer(set -> {
                     sleepUninterruptibly(700, MILLISECONDS);
                     counter.incrementAndGet();
-                }) //
+                })
                 .build();
         long now = currentTimeMillis();
         while (currentTimeMillis() - now < SECONDS.toMillis(20)) {
@@ -43,12 +43,12 @@ class LongConsumerTest {
     @Test
     void testLong() {
         AtomicInteger counter = new AtomicInteger();
-        BufferTrigger<Long> bufferTrigger = SimpleBufferTrigger.newBuilder() //
-                .interval(1, SECONDS) //
+        BufferTrigger<Long> bufferTrigger = SimpleBufferTrigger.newBuilder()
+                .interval(1, SECONDS)
                 .consumer(set -> {
                     sleepUninterruptibly(2000, MILLISECONDS);
                     counter.incrementAndGet();
-                }) //
+                })
                 .build();
         long now = currentTimeMillis();
         while (currentTimeMillis() - now < SECONDS.toMillis(20)) {

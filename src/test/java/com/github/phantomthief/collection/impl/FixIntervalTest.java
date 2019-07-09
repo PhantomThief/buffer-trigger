@@ -28,10 +28,10 @@ class FixIntervalTest {
     @Test
     void testDelayMode() {
         logger.info("start.");
-        BufferTrigger<String> trigger = BufferTrigger.simpleTrigger() //
-                .interval(INTERVAL, SECONDS) //
-                .setContainer(HashSet::new, Set::add) //
-                .consumer(this::consumerDelay) //
+        BufferTrigger<String> trigger = BufferTrigger.simpleTrigger()
+                .interval(INTERVAL, SECONDS)
+                .setContainer(HashSet::new, Set::add)
+                .consumer(this::consumerDelay)
                 .build();
         for (int i = 0; i < 25; i++) {
             trigger.enqueue(i + "");
@@ -52,10 +52,10 @@ class FixIntervalTest {
     @Test
     void testFixedRateMode() {
         logger.info("start.");
-        BufferTrigger<String> trigger = BufferTrigger.<String, Set<String>> simple() //
-                .intervalAtFixedRate(INTERVAL, SECONDS) //
-                .setContainer(HashSet::new, Set::add) //
-                .consumer(this::consumerFixed) //
+        BufferTrigger<String> trigger = BufferTrigger.<String, Set<String>> simple()
+                .intervalAtFixedRate(INTERVAL, SECONDS)
+                .setContainer(HashSet::new, Set::add)
+                .consumer(this::consumerFixed)
                 .build();
         for (int i = 0; i < 20; i++) {
             trigger.enqueue(i + "");

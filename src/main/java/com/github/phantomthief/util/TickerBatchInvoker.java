@@ -35,10 +35,10 @@ public class TickerBatchInvoker<K, V> implements Function<K, CompletableFuture<V
             Executor executor) {
         this.batchInvoker = batchInvoker;
         this.executor = executor;
-        this.bufferTrigger = SimpleBufferTrigger.newBuilder() //
-                .setContainer(ConcurrentHashMap::new, this::enqueue) //
-                .on(ticker, MILLISECONDS, 1) //
-                .consumer(this::batchInvoke) //
+        this.bufferTrigger = SimpleBufferTrigger.newBuilder()
+                .setContainer(ConcurrentHashMap::new, this::enqueue)
+                .on(ticker, MILLISECONDS, 1)
+                .consumer(this::batchInvoke)
                 .build();
     }
 
@@ -76,8 +76,8 @@ public class TickerBatchInvoker<K, V> implements Function<K, CompletableFuture<V
             } catch (Throwable e) {
                 for (List<CompletableFuture<V>> futures : map.values()) {
                     synchronized (futures) {
-                        futures.stream() //
-                                .filter(future -> !future.isDone()) //
+                        futures.stream()
+                                .filter(future -> !future.isDone())
                                 .forEach(future -> future.completeExceptionally(e));
                     }
                 }

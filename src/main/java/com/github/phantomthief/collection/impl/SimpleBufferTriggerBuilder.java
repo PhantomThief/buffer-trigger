@@ -167,6 +167,13 @@ public class SimpleBufferTriggerBuilder<E, C> {
         });
     }
 
+    /**
+     * 开启背压(back-pressure)能力
+     * 注意，当开启背压时，需要配合 {@link #maxBufferCount(long)}
+     * 并且不要设置 {@link #rejectHandler}
+     *
+     * 当buffer达到最大值时，会阻塞入队线程，直到消费完当前buffer后再继续执行
+     */
     public <E1, C1> SimpleBufferTriggerBuilder<E1, C1> enableBackPressure() {
         if (this.rejectHandler != null) {
             throw new IllegalStateException("cannot enable back-pressure while reject handler was set.");

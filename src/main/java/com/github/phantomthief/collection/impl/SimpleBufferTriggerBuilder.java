@@ -233,6 +233,7 @@ public class SimpleBufferTriggerBuilder<E, C> {
         }
 
         if (bufferFactory == null && queueAdder == null) {
+            logger.warn("no container found. use default thread-safe HashSet as container.");
             bufferFactory = () -> (C) newSetFromMap(new ConcurrentHashMap<>());
             queueAdder = (c, e) -> ((Set<E>) c).add(e) ? 1 : 0;
         }

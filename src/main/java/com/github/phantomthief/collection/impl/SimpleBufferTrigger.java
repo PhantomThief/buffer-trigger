@@ -1,5 +1,6 @@
 package com.github.phantomthief.collection.impl;
 
+import static com.google.common.base.Throwables.throwIfUnchecked;
 import static java.lang.System.currentTimeMillis;
 import static java.util.concurrent.TimeUnit.DAYS;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
@@ -13,9 +14,9 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.function.ToIntBiFunction;
 
@@ -40,9 +41,10 @@ public class SimpleBufferTrigger<E, C> implements BufferTrigger<E> {
     private final BiConsumer<Throwable, C> exceptionHandler;
     private final AtomicReference<C> buffer = new AtomicReference<>();
     private final long maxBufferCount;
-    private final Consumer<E> rejectHandler;
+    private final RejectHandler<E> rejectHandler;
     private final ReadLock readLock;
     private final WriteLock writeLock;
+    private final Condition writeCondition;
 
     private volatile long lastConsumeTimestamp = currentTimeMillis();
 
@@ -58,9 +60,11 @@ public class SimpleBufferTrigger<E, C> implements BufferTrigger<E> {
             ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
             readLock = lock.readLock();
             writeLock = lock.writeLock();
+            writeCondition = writeLock.newCondition();
         } else {
             readLock = null;
             writeLock = null;
+            writeCondition = null;
         }
         builder.scheduledExecutorService.schedule(
                 new TriggerRunnable(builder.scheduledExecutorService, builder.triggerStrategy),
@@ -96,10 +100,10 @@ public class SimpleBufferTrigger<E, C> implements BufferTrigger<E> {
     public void enqueue(E element) {
         long currentCount = counter.get();
         if (maxBufferCount > 0 && currentCount >= maxBufferCount) {
-            if (rejectHandler != null) {
-                rejectHandler.accept(element);
+            boolean pass = fireRejectHandler(element);
+            if (!pass) {
+                return;
             }
-            return;
         }
         boolean locked = false;
         if (readLock != null) {
@@ -123,6 +127,26 @@ public class SimpleBufferTrigger<E, C> implements BufferTrigger<E> {
         }
     }
 
+    private boolean fireRejectHandler(E element) {
+        boolean pass = false;
+        if (rejectHandler != null) {
+            if (writeLock != null && writeCondition != null) {
+                writeLock.lock();
+            }
+            try {
+                pass = rejectHandler.onReject(element, writeCondition);
+            } catch (Throwable e) {
+                throwIfUnchecked(e);
+                throw new RuntimeException(e);
+            } finally {
+                if (writeLock != null && writeCondition != null) {
+                    writeLock.unlock();
+                }
+            }
+        }
+        return pass;
+    }
+
     @Override
     public void manuallyDoTrigger() {
         synchronized (SimpleBufferTrigger.this) {
@@ -140,6 +164,9 @@ public class SimpleBufferTrigger<E, C> implements BufferTrigger<E> {
                 old = buffer.getAndSet(bufferFactory.get());
             } finally {
                 counter.set(0);
+                if (writeCondition != null) {
+                    writeCondition.signalAll();
+                }
                 if (writeLock != null) {
                     writeLock.unlock();
                 }

@@ -39,7 +39,7 @@ public class SimpleBufferTriggerBuilder<E, C> {
     ThrowableConsumer<C, Throwable> consumer;
     BiConsumer<Throwable, C> exceptionHandler;
     long maxBufferCount = -1;
-    Consumer<E> rejectHandler;
+    RejectHandler<E> rejectHandler;
     String name;
     boolean disableSwitchLock;
 
@@ -159,11 +159,40 @@ public class SimpleBufferTriggerBuilder<E, C> {
     /**
      * it's better dealing this in container
      */
-    public <E1, C1> SimpleBufferTriggerBuilder<E1, C1>
-            rejectHandler(Consumer<? super E1> rejectHandler) {
+    public <E1, C1> SimpleBufferTriggerBuilder<E1, C1> rejectHandler(Consumer<? super E1> rejectHandler) {
         checkNotNull(rejectHandler);
+        return this.<E1, C1> rejectHandlerEx((e, h) -> {
+            rejectHandler.accept(e);
+            return false;
+        });
+    }
+
+    /**
+     * 开启背压(back-pressure)能力
+     * 注意，当开启背压时，需要配合 {@link #maxBufferCount(long)}
+     * 并且不要设置 {@link #rejectHandler}
+     *
+     * 当buffer达到最大值时，会阻塞入队线程，直到消费完当前buffer后再继续执行
+     */
+    public <E1, C1> SimpleBufferTriggerBuilder<E1, C1> enableBackPressure() {
+        if (this.rejectHandler != null) {
+            throw new IllegalStateException("cannot enable back-pressure while reject handler was set.");
+        }
         SimpleBufferTriggerBuilder<E1, C1> thisBuilder = (SimpleBufferTriggerBuilder<E1, C1>) this;
-        thisBuilder.rejectHandler = (Consumer<E1>) rejectHandler;
+        thisBuilder.rejectHandler = new BackPressureHandler<E1>();
+        return thisBuilder;
+    }
+
+    /**
+     * it's better dealing this in container
+     */
+    private <E1, C1> SimpleBufferTriggerBuilder<E1, C1> rejectHandlerEx(RejectHandler<? super E1> rejectHandler) {
+        checkNotNull(rejectHandler);
+        if (this.rejectHandler instanceof BackPressureHandler) {
+            throw new IllegalStateException("cannot set reject handler while enable back-pressure.");
+        }
+        SimpleBufferTriggerBuilder<E1, C1> thisBuilder = (SimpleBufferTriggerBuilder<E1, C1>) this;
+        thisBuilder.rejectHandler = (RejectHandler<E1>) rejectHandler;
         return thisBuilder;
     }
 
@@ -176,16 +205,28 @@ public class SimpleBufferTriggerBuilder<E, C> {
     }
 
     public <E1> BufferTrigger<E1> build() {
+        check();
         return new LazyBufferTrigger<>(() -> {
             ensure();
-            SimpleBufferTriggerBuilder<E1, C> builder = (SimpleBufferTriggerBuilder<E1, C>) SimpleBufferTriggerBuilder.this;
+            SimpleBufferTriggerBuilder<E1, C> builder =
+                    (SimpleBufferTriggerBuilder<E1, C>) SimpleBufferTriggerBuilder.this;
             return new SimpleBufferTrigger<>(builder);
         });
     }
 
-    private void ensure() {
+    private void check() {
         checkNotNull(consumer);
+        if (rejectHandler instanceof BackPressureHandler) {
+            if (disableSwitchLock) {
+                throw new IllegalStateException("back-pressure cannot work together with switch lock disabled.");
+            }
+            if (maxBufferCount <= 0) {
+                throw new IllegalStateException("back-pressure need to set maxBufferCount.");
+            }
+        }
+    }
 
+    private void ensure() {
         if (triggerStrategy == null) {
             logger.warn("no trigger strategy found. using NO-OP trigger");
             triggerStrategy = (t, n) -> empty();

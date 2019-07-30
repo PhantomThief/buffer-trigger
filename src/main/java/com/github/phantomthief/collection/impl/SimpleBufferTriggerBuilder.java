@@ -23,7 +23,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.github.phantomthief.collection.BufferTrigger;
-import com.github.phantomthief.collection.RejectHandler;
 import com.github.phantomthief.collection.impl.SimpleBufferTrigger.TriggerStrategy;
 import com.github.phantomthief.util.ThrowableConsumer;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
@@ -180,7 +179,7 @@ public class SimpleBufferTriggerBuilder<E, C> {
     /**
      * it's better dealing this in container
      */
-    public <E1, C1> SimpleBufferTriggerBuilder<E1, C1> rejectHandlerEx(RejectHandler<? super E1> rejectHandler) {
+    private <E1, C1> SimpleBufferTriggerBuilder<E1, C1> rejectHandlerEx(RejectHandler<? super E1> rejectHandler) {
         checkNotNull(rejectHandler);
         if (this.rejectHandler instanceof BackPressureHandler) {
             throw new IllegalStateException("cannot set reject handler while enable back-pressure.");

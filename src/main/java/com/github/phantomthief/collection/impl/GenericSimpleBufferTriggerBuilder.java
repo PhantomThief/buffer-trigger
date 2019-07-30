@@ -16,7 +16,6 @@ import java.util.function.ToIntBiFunction;
 import javax.annotation.CheckReturnValue;
 
 import com.github.phantomthief.collection.BufferTrigger;
-import com.github.phantomthief.collection.RejectHandler;
 import com.github.phantomthief.collection.impl.SimpleBufferTrigger.TriggerResult;
 import com.github.phantomthief.collection.impl.SimpleBufferTrigger.TriggerStrategy;
 import com.github.phantomthief.util.ThrowableConsumer;
@@ -151,12 +150,6 @@ public class GenericSimpleBufferTriggerBuilder<E, C> {
     @CheckReturnValue
     public GenericSimpleBufferTriggerBuilder<E, C> rejectHandler(Consumer<? super E> rejectHandler) {
         builder.rejectHandler(rejectHandler);
-        return this;
-    }
-
-    @CheckReturnValue
-    public GenericSimpleBufferTriggerBuilder<E, C> rejectHandlerEx(RejectHandler<? super E> rejectHandler) {
-        builder.rejectHandlerEx(rejectHandler);
         return this;
     }
 

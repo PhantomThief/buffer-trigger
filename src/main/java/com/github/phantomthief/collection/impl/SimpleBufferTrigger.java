@@ -23,7 +23,6 @@ import java.util.function.ToIntBiFunction;
 import org.slf4j.Logger;
 
 import com.github.phantomthief.collection.BufferTrigger;
-import com.github.phantomthief.collection.RejectHandler;
 import com.github.phantomthief.util.ThrowableConsumer;
 
 /**

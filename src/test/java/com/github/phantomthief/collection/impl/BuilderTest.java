@@ -35,5 +35,10 @@ class BuilderTest {
                         .rejectHandler(it -> {})
                         .enableBackPressure()
                         .build());
+        assertThrows(IllegalStateException.class, () ->
+                BufferTrigger.simple()
+                        .consumer(it -> {})
+                        .enableBackPressure()
+                        .build());
     }
 }

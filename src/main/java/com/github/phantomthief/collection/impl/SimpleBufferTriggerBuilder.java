@@ -216,8 +216,13 @@ public class SimpleBufferTriggerBuilder<E, C> {
 
     private void check() {
         checkNotNull(consumer);
-        if (rejectHandler instanceof BackPressureHandler && disableSwitchLock) {
-            throw new IllegalStateException("back-pressure cannot work together with switch lock disabled.");
+        if (rejectHandler instanceof BackPressureHandler) {
+            if (disableSwitchLock) {
+                throw new IllegalStateException("back-pressure cannot work together with switch lock disabled.");
+            }
+            if (maxBufferCount <= 0) {
+                throw new IllegalStateException("back-pressure need to set maxBufferCount.");
+            }
         }
     }
 

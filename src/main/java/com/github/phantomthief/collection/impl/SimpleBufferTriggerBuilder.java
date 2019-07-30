@@ -44,7 +44,7 @@ public class SimpleBufferTriggerBuilder<E, C> {
     boolean disableSwitchLock;
 
     /**
-     * <b>warning:</b> the container must be thread-safed.
+     * <b>warning:</b> the container must be thread-safe.
      * better use {@link #setContainerEx}
      *
      * @param queueAdder return if there is a change occurred.

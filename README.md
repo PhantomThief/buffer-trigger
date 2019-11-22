@@ -1,4 +1,4 @@
-buffer-trigger [![Build Status](https://travis-ci.org/PhantomThief/buffer-trigger.svg)](https://travis-ci.org/PhantomThief/buffer-trigger) [![Coverage Status](https://coveralls.io/repos/PhantomThief/buffer-trigger/badge.svg?branch=master)](https://coveralls.io/r/PhantomThief/buffer-trigger?branch=master)
+buffer-trigger [![Build Status](https://travis-ci.org/PhantomThief/buffer-trigger.svg)](https://travis-ci.org/PhantomThief/buffer-trigger) [![Coverage Status](https://coveralls.io/repos/PhantomThief/buffer-trigger/badge.svg?branch=master)](https://coveralls.io/r/PhantomThief/buffer-trigger?branch=master) [![Total alerts](https://img.shields.io/lgtm/alerts/g/PhantomThief/buffer-trigger.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/PhantomThief/buffer-trigger/alerts/) [![Language grade: Java](https://img.shields.io/lgtm/grade/java/g/PhantomThief/buffer-trigger.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/PhantomThief/buffer-trigger/context:java) [![Maven Central](https://img.shields.io/maven-central/v/com.github.phantomthief/buffer-trigger)](https://search.maven.org/artifact/com.github.phantomthief/buffer-trigger/)
 =======================
 
 A local data buffer with customizable data trigger
@@ -6,16 +6,6 @@ A local data buffer with customizable data trigger
 * customize trigger strategy
 * buffer container can be customized
 * jdk1.8 only
-
-## Get Started
-
-```xml
-<dependency>
-    <groupId>com.github.phantomthief</groupId>
-    <artifactId>buffer-trigger</artifactId>
-    <version>0.2.9</version>
-</dependency>
-```
 
 ## Usage
 

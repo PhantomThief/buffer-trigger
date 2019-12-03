@@ -3,9 +3,9 @@ package com.github.phantomthief.collection.impl;
 import static com.github.phantomthief.concurrent.MoreFutures.scheduleWithDynamicDelay;
 import static com.github.phantomthief.util.MoreLocks.runWithLock;
 import static com.github.phantomthief.util.MoreLocks.runWithTryLock;
+import static com.google.common.util.concurrent.Uninterruptibles.putUninterruptibly;
 import static java.lang.Integer.max;
 import static java.lang.Math.min;
-import static java.lang.Thread.currentThread;
 import static org.slf4j.LoggerFactory.getLogger;
 
 import java.time.Duration;
@@ -61,12 +61,8 @@ public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
 
     @Override
     public void enqueue(E element) {
-        try {
-            queue.put(element);
-            tryTrigBatchConsume();
-        } catch (InterruptedException e) {
-            currentThread().interrupt();
-        }
+        putUninterruptibly(queue, element);
+        tryTrigBatchConsume();
     }
 
     private void tryTrigBatchConsume() {

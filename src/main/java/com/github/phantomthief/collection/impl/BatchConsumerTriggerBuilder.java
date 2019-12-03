@@ -12,7 +12,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
-import java.util.function.IntSupplier;
 import java.util.function.Supplier;
 
 import javax.annotation.Nonnull;
@@ -28,7 +27,7 @@ public final class BatchConsumerTriggerBuilder<E> {
 
     ScheduledExecutorService scheduledExecutorService;
     Supplier<Duration> linger;
-    IntSupplier batchSize;
+    int batchSize;
     int bufferSize;
     ThrowableConsumer<List<E>, Exception> consumer;
     BiConsumer<Throwable, List<E>> exceptionHandler;
@@ -75,11 +74,7 @@ public final class BatchConsumerTriggerBuilder<E> {
     }
 
     public BatchConsumerTriggerBuilder<E> batchSize(int size) {
-        return batchSize(() -> size);
-    }
-
-    public BatchConsumerTriggerBuilder<E> batchSize(@Nonnull IntSupplier size) {
-        this.batchSize = checkNotNull(size);
+        this.batchSize = size;
         return this;
     }
 

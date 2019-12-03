@@ -11,13 +11,11 @@ import static org.slf4j.LoggerFactory.getLogger;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.BiConsumer;
-import java.util.function.IntSupplier;
 import java.util.function.Supplier;
 
 import org.slf4j.Logger;
@@ -32,8 +30,8 @@ public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
 
     private static final Logger logger = getLogger(BatchConsumeBlockingQueueTrigger.class);
 
-    private final BlockingQueue<E> queue;
-    private final IntSupplier batchSize;
+    private final LinkedBlockingQueue<E> queue;
+    private final int batchSize;
     private final Supplier<Duration> linger;
     private final ThrowableConsumer<List<E>, Exception> consumer;
     private final BiConsumer<Throwable, List<E>> exceptionHandler;
@@ -44,7 +42,7 @@ public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
     BatchConsumeBlockingQueueTrigger(BatchConsumerTriggerBuilder<E> builder) {
         this.linger = builder.linger;
         this.batchSize = builder.batchSize;
-        this.queue = new LinkedBlockingQueue<>(max(builder.bufferSize, batchSize.getAsInt()));
+        this.queue = new LinkedBlockingQueue<>(max(builder.bufferSize, batchSize));
         this.consumer = builder.consumer;
         this.exceptionHandler = builder.exceptionHandler;
         this.scheduledExecutorService = builder.scheduledExecutorService;
@@ -71,10 +69,9 @@ public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
     }
 
     private void tryTrigBatchConsume() {
-        int thisBatchSize = batchSize.getAsInt();
-        if (queue.size() >= thisBatchSize) {
+        if (queue.size() >= batchSize) {
             runWithTryLock(lock, () -> {
-                if (queue.size() >= thisBatchSize) {
+                if (queue.size() >= batchSize) {
                     if (!running.get()) { // prevent repeat enqueue
                         this.scheduledExecutorService.execute(() -> doBatchConsumer(TriggerType.ENQUEUE));
                         running.set(true);
@@ -95,9 +92,8 @@ public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
                 running.set(true);
                 int queueSizeBeforeConsumer = queue.size();
                 int consumedSize = 0;
-                int thisBatchSize = batchSize.getAsInt();
                 while (!queue.isEmpty()) {
-                    if (queue.size() < thisBatchSize) {
+                    if (queue.size() < batchSize) {
                         if (type == TriggerType.ENQUEUE) {
                             return;
                         } else if (type == TriggerType.LINGER
@@ -105,8 +101,8 @@ public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
                             return;
                         }
                     }
-                    List<E> toConsumeData = new ArrayList<>(min(thisBatchSize, queue.size()));
-                    queue.drainTo(toConsumeData, thisBatchSize);
+                    List<E> toConsumeData = new ArrayList<>(min(batchSize, queue.size()));
+                    queue.drainTo(toConsumeData, batchSize);
                     if (!toConsumeData.isEmpty()) {
                         if (logger.isDebugEnabled()) {
                             logger.debug("do batch consumer:{}, size:{}", type,

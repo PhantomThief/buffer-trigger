@@ -7,7 +7,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
-import java.util.function.IntSupplier;
 import java.util.function.Supplier;
 
 import com.github.phantomthief.collection.BufferTrigger;
@@ -70,11 +69,6 @@ public class GenericBatchConsumerTriggerBuilder<E> {
     }
 
     public GenericBatchConsumerTriggerBuilder<E> batchSize(int size) {
-        builder.batchSize(size);
-        return this;
-    }
-
-    public GenericBatchConsumerTriggerBuilder<E> batchSize(IntSupplier size) {
         builder.batchSize(size);
         return this;
     }

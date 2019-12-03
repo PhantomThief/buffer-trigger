@@ -1,13 +1,14 @@
 package com.github.phantomthief.collection.impl;
 
+import static com.github.phantomthief.concurrent.MoreFutures.scheduleWithDynamicDelay;
 import static com.github.phantomthief.util.MoreLocks.runWithLock;
 import static com.github.phantomthief.util.MoreLocks.runWithTryLock;
 import static java.lang.Integer.max;
 import static java.lang.Math.min;
 import static java.lang.Thread.currentThread;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.slf4j.LoggerFactory.getLogger;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
@@ -16,6 +17,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.BiConsumer;
+import java.util.function.Supplier;
 
 import org.slf4j.Logger;
 
@@ -31,7 +33,7 @@ public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
 
     private final BlockingQueue<E> queue;
     private final int batchSize;
-    private final long lingerMs;
+    private final Supplier<Duration> linger;
     private final ThrowableConsumer<List<E>, Exception> consumer;
     private final BiConsumer<Throwable, List<E>> exceptionHandler;
     private final ScheduledExecutorService scheduledExecutorService;
@@ -39,14 +41,13 @@ public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
     private final AtomicBoolean running = new AtomicBoolean();
 
     BatchConsumeBlockingQueueTrigger(BatchConsumerTriggerBuilder<E> builder) {
-        this.lingerMs = builder.lingerMs;
+        this.linger = builder.linger;
         this.batchSize = builder.batchSize;
         this.queue = new LinkedBlockingQueue<>(max(builder.bufferSize, batchSize));
         this.consumer = builder.consumer;
         this.exceptionHandler = builder.exceptionHandler;
         this.scheduledExecutorService = builder.scheduledExecutorService;
-        this.scheduledExecutorService.schedule(new BatchConsumerRunnable(), this.lingerMs,
-                MILLISECONDS);
+        scheduleWithDynamicDelay(scheduledExecutorService, linger, () -> doBatchConsumer(TriggerType.LINGER));
     }
 
     /**
@@ -130,18 +131,6 @@ public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
                 }
             } else {
                 logger.error("Ops.", e);
-            }
-        }
-    }
-
-    private class BatchConsumerRunnable implements Runnable {
-
-        @Override
-        public void run() {
-            try {
-                doBatchConsumer(TriggerType.LINGER);
-            } finally {
-                scheduledExecutorService.schedule(this, lingerMs, MILLISECONDS);
             }
         }
     }

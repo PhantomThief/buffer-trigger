@@ -7,6 +7,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 import com.github.phantomthief.collection.BufferTrigger;
 import com.github.phantomthief.util.ThrowableConsumer;
@@ -49,6 +50,11 @@ public class GenericBatchConsumerTriggerBuilder<E> {
     }
 
     public GenericBatchConsumerTriggerBuilder<E> linger(Duration duration) {
+        builder.linger(duration);
+        return this;
+    }
+
+    public GenericBatchConsumerTriggerBuilder<E> linger(Supplier<Duration> duration) {
         builder.linger(duration);
         return this;
     }

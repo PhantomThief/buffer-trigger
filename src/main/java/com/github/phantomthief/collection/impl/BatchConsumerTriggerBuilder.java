@@ -1,8 +1,9 @@
 package com.github.phantomthief.collection.impl;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static java.time.Duration.ofNanos;
+import static java.time.Duration.ofSeconds;
 import static java.util.concurrent.Executors.newScheduledThreadPool;
-import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.time.Duration;
 import java.util.List;
@@ -11,6 +12,9 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
+
+import javax.annotation.Nonnull;
 
 import com.github.phantomthief.collection.BufferTrigger;
 import com.github.phantomthief.util.ThrowableConsumer;
@@ -19,10 +23,10 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 @SuppressWarnings({ "unchecked", "rawtypes" })
 public final class BatchConsumerTriggerBuilder<E> {
 
-    private static final long DEFAULT_LINGER_MS = SECONDS.toMillis(1);
+    private static final Duration DEFAULT_LINGER = ofSeconds(1);
 
     ScheduledExecutorService scheduledExecutorService;
-    long lingerMs;
+    Supplier<Duration> linger;
     int batchSize;
     int bufferSize;
     ThrowableConsumer<List<E>, Exception> consumer;
@@ -48,12 +52,16 @@ public final class BatchConsumerTriggerBuilder<E> {
     }
 
     public BatchConsumerTriggerBuilder<E> linger(long time, TimeUnit unit) {
-        this.lingerMs = unit.toMillis(time);
-        return this;
+        return linger(() -> ofNanos(unit.toNanos(time)));
     }
 
-    public BatchConsumerTriggerBuilder<E> linger(Duration duration) {
-        this.lingerMs = duration.toMillis();
+    public BatchConsumerTriggerBuilder<E> linger(@Nonnull Duration duration) {
+        checkNotNull(duration);
+        return linger(() -> duration);
+    }
+
+    public BatchConsumerTriggerBuilder<E> linger(@Nonnull Supplier<Duration> duration) {
+        this.linger = checkNotNull(duration);
         return this;
     }
 
@@ -62,8 +70,7 @@ public final class BatchConsumerTriggerBuilder<E> {
      */
     @Deprecated
     public BatchConsumerTriggerBuilder<E> batchConsumerSize(int size) {
-        this.batchSize = size;
-        return this;
+        return batchSize(size);
     }
 
     public BatchConsumerTriggerBuilder<E> batchSize(int size) {
@@ -123,8 +130,8 @@ public final class BatchConsumerTriggerBuilder<E> {
     private void ensure() {
         checkNotNull(consumer);
 
-        if (lingerMs <= 0) {
-            lingerMs = DEFAULT_LINGER_MS;
+        if (linger == null) {
+            linger = () -> DEFAULT_LINGER;
         }
         if (scheduledExecutorService == null) {
             scheduledExecutorService = makeScheduleExecutor();

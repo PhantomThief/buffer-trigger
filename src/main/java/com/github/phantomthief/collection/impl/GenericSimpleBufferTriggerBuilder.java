@@ -14,6 +14,7 @@ import java.util.function.Supplier;
 import java.util.function.ToIntBiFunction;
 
 import javax.annotation.CheckReturnValue;
+import javax.annotation.Nonnull;
 
 import com.github.phantomthief.collection.BufferTrigger;
 import com.github.phantomthief.collection.impl.SimpleBufferTrigger.TriggerResult;
@@ -126,6 +127,12 @@ public class GenericSimpleBufferTriggerBuilder<E, C> {
 
     @CheckReturnValue
     public GenericSimpleBufferTriggerBuilder<E, C> maxBufferCount(long count) {
+        builder.maxBufferCount(count);
+        return this;
+    }
+
+    @CheckReturnValue
+    public GenericSimpleBufferTriggerBuilder<E, C> maxBufferCount(@Nonnull LongSupplier count) {
         builder.maxBufferCount(count);
         return this;
     }

@@ -17,6 +17,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.BiConsumer;
+import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 import java.util.function.ToIntBiFunction;
 
@@ -40,7 +41,7 @@ public class SimpleBufferTrigger<E, C> implements BufferTrigger<E> {
     private final Supplier<C> bufferFactory;
     private final BiConsumer<Throwable, C> exceptionHandler;
     private final AtomicReference<C> buffer = new AtomicReference<>();
-    private final long maxBufferCount;
+    private final LongSupplier maxBufferCount;
     private final RejectHandler<E> rejectHandler;
     private final ReadLock readLock;
     private final WriteLock writeLock;
@@ -99,7 +100,8 @@ public class SimpleBufferTrigger<E, C> implements BufferTrigger<E> {
     @Override
     public void enqueue(E element) {
         long currentCount = counter.get();
-        if (maxBufferCount > 0 && currentCount >= maxBufferCount) {
+        long thisMaxBufferCount = maxBufferCount.getAsLong();
+        if (thisMaxBufferCount > 0 && currentCount >= thisMaxBufferCount) {
             boolean pass = fireRejectHandler(element);
             if (!pass) {
                 return;

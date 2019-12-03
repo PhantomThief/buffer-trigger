@@ -19,6 +19,8 @@ import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 import java.util.function.ToIntBiFunction;
 
+import javax.annotation.Nonnull;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,13 +34,15 @@ public class SimpleBufferTriggerBuilder<E, C> {
 
     private static final Logger logger = LoggerFactory.getLogger(SimpleBufferTriggerBuilder.class);
 
+    private boolean maxBufferCountWasSet = false;
+
     TriggerStrategy triggerStrategy;
     ScheduledExecutorService scheduledExecutorService;
     Supplier<C> bufferFactory;
     ToIntBiFunction<C, E> queueAdder;
     ThrowableConsumer<C, Throwable> consumer;
     BiConsumer<Throwable, C> exceptionHandler;
-    long maxBufferCount = -1;
+    LongSupplier maxBufferCount = () -> -1;
     RejectHandler<E> rejectHandler;
     String name;
     boolean disableSwitchLock;
@@ -142,8 +146,15 @@ public class SimpleBufferTriggerBuilder<E, C> {
      */
     public SimpleBufferTriggerBuilder<E, C> maxBufferCount(long count) {
         checkArgument(count > 0);
+        return maxBufferCount(() -> count);
+    }
 
-        this.maxBufferCount = count;
+    /**
+     * it's better dealing this in container
+     */
+    public SimpleBufferTriggerBuilder<E, C> maxBufferCount(@Nonnull LongSupplier count) {
+        this.maxBufferCount = checkNotNull(count);
+        maxBufferCountWasSet = true;
         return this;
     }
 
@@ -220,7 +231,7 @@ public class SimpleBufferTriggerBuilder<E, C> {
             if (disableSwitchLock) {
                 throw new IllegalStateException("back-pressure cannot work together with switch lock disabled.");
             }
-            if (maxBufferCount <= 0) {
+            if (!maxBufferCountWasSet) {
                 throw new IllegalStateException("back-pressure need to set maxBufferCount.");
             }
         }

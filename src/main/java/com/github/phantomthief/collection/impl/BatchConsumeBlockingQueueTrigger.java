@@ -11,6 +11,7 @@ import static org.slf4j.LoggerFactory.getLogger;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -30,7 +31,7 @@ public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
 
     private static final Logger logger = getLogger(BatchConsumeBlockingQueueTrigger.class);
 
-    private final LinkedBlockingQueue<E> queue;
+    private final BlockingQueue<E> queue;
     private final int batchSize;
     private final Supplier<Duration> linger;
     private final ThrowableConsumer<List<E>, Exception> consumer;

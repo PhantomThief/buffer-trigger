@@ -21,12 +21,12 @@ public final class BatchConsumerTriggerBuilder<E> {
 
     private static final long DEFAULT_LINGER_MS = SECONDS.toMillis(1);
 
-    private ScheduledExecutorService scheduledExecutorService;
-    private long lingerMs;
-    private int batchSize;
-    private int bufferSize;
-    private ThrowableConsumer<List<E>, Exception> consumer;
-    private BiConsumer<Throwable, List<E>> exceptionHandler;
+    ScheduledExecutorService scheduledExecutorService;
+    long lingerMs;
+    int batchSize;
+    int bufferSize;
+    ThrowableConsumer<List<E>, Exception> consumer;
+    BiConsumer<Throwable, List<E>> exceptionHandler;
 
     public BatchConsumerTriggerBuilder<E>
             setScheduleExecutorService(ScheduledExecutorService scheduledExecutorService) {
@@ -116,8 +116,7 @@ public final class BatchConsumerTriggerBuilder<E> {
     public <E1> BufferTrigger<E1> build() {
         return (BufferTrigger<E1>) new LazyBufferTrigger<>(() -> {
             ensure();
-            return new BatchConsumeBlockingQueueTrigger(lingerMs, batchSize, bufferSize,
-                    exceptionHandler, consumer, scheduledExecutorService);
+            return new BatchConsumeBlockingQueueTrigger(this);
         });
     }
 

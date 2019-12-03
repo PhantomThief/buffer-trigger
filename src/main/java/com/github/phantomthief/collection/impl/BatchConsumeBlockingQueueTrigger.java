@@ -1,13 +1,14 @@
 package com.github.phantomthief.collection.impl;
 
+import static com.github.phantomthief.concurrent.MoreFutures.scheduleWithDynamicDelay;
 import static com.github.phantomthief.util.MoreLocks.runWithLock;
 import static com.github.phantomthief.util.MoreLocks.runWithTryLock;
 import static java.lang.Integer.max;
 import static java.lang.Math.min;
 import static java.lang.Thread.currentThread;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.slf4j.LoggerFactory.getLogger;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
@@ -16,6 +17,8 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.BiConsumer;
+import java.util.function.IntSupplier;
+import java.util.function.Supplier;
 
 import org.slf4j.Logger;
 
@@ -30,8 +33,8 @@ public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
     private static final Logger logger = getLogger(BatchConsumeBlockingQueueTrigger.class);
 
     private final BlockingQueue<E> queue;
-    private final int batchSize;
-    private final long lingerMs;
+    private final IntSupplier batchSize;
+    private final Supplier<Duration> linger;
     private final ThrowableConsumer<List<E>, Exception> consumer;
     private final BiConsumer<Throwable, List<E>> exceptionHandler;
     private final ScheduledExecutorService scheduledExecutorService;
@@ -39,14 +42,13 @@ public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
     private final AtomicBoolean running = new AtomicBoolean();
 
     BatchConsumeBlockingQueueTrigger(BatchConsumerTriggerBuilder<E> builder) {
-        this.lingerMs = builder.lingerMs;
+        this.linger = builder.linger;
         this.batchSize = builder.batchSize;
-        this.queue = new LinkedBlockingQueue<>(max(builder.bufferSize, batchSize));
+        this.queue = new LinkedBlockingQueue<>(max(builder.bufferSize, batchSize.getAsInt()));
         this.consumer = builder.consumer;
         this.exceptionHandler = builder.exceptionHandler;
         this.scheduledExecutorService = builder.scheduledExecutorService;
-        this.scheduledExecutorService.schedule(new BatchConsumerRunnable(), this.lingerMs,
-                MILLISECONDS);
+        scheduleWithDynamicDelay(scheduledExecutorService, linger, () -> doBatchConsumer(TriggerType.LINGER));
     }
 
     /**
@@ -69,9 +71,10 @@ public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
     }
 
     private void tryTrigBatchConsume() {
-        if (queue.size() >= batchSize) {
+        int thisBatchSize = batchSize.getAsInt();
+        if (queue.size() >= thisBatchSize) {
             runWithTryLock(lock, () -> {
-                if (queue.size() >= batchSize) {
+                if (queue.size() >= thisBatchSize) {
                     if (!running.get()) { // prevent repeat enqueue
                         this.scheduledExecutorService.execute(() -> doBatchConsumer(TriggerType.ENQUEUE));
                         running.set(true);
@@ -92,8 +95,9 @@ public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
                 running.set(true);
                 int queueSizeBeforeConsumer = queue.size();
                 int consumedSize = 0;
+                int thisBatchSize = batchSize.getAsInt();
                 while (!queue.isEmpty()) {
-                    if (queue.size() < batchSize) {
+                    if (queue.size() < thisBatchSize) {
                         if (type == TriggerType.ENQUEUE) {
                             return;
                         } else if (type == TriggerType.LINGER
@@ -101,8 +105,8 @@ public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
                             return;
                         }
                     }
-                    List<E> toConsumeData = new ArrayList<>(min(batchSize, queue.size()));
-                    queue.drainTo(toConsumeData, batchSize);
+                    List<E> toConsumeData = new ArrayList<>(min(thisBatchSize, queue.size()));
+                    queue.drainTo(toConsumeData, thisBatchSize);
                     if (!toConsumeData.isEmpty()) {
                         if (logger.isDebugEnabled()) {
                             logger.debug("do batch consumer:{}, size:{}", type,
@@ -130,18 +134,6 @@ public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
                 }
             } else {
                 logger.error("Ops.", e);
-            }
-        }
-    }
-
-    private class BatchConsumerRunnable implements Runnable {
-
-        @Override
-        public void run() {
-            try {
-                doBatchConsumer(TriggerType.LINGER);
-            } finally {
-                scheduledExecutorService.schedule(this, lingerMs, MILLISECONDS);
             }
         }
     }

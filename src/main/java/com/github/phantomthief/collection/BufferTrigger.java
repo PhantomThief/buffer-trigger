@@ -32,6 +32,9 @@ public interface BufferTrigger<E> {
 
     /**
      * 提供自带背压(back-pressure)的简单批量归并消费能力
+     *
+     * FIXME: 高亮注意，目前 {@link #simple()} 也提供了背压能力 {@link GenericSimpleBufferTriggerBuilder#enableBackPressure()}
+     * 所以本模式的意义已经小的多，如果没特殊情况，可以考虑都且到 {@link SimpleBufferTrigger} 版本
      */
     static <E> GenericBatchConsumerTriggerBuilder<E> batchBlocking() {
         return new GenericBatchConsumerTriggerBuilder<>(

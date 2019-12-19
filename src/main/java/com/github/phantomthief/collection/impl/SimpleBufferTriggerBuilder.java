@@ -172,7 +172,7 @@ public class SimpleBufferTriggerBuilder<E, C> {
      */
     public <E1, C1> SimpleBufferTriggerBuilder<E1, C1> rejectHandler(Consumer<? super E1> rejectHandler) {
         checkNotNull(rejectHandler);
-        return this.<E1, C1> rejectHandlerEx((e, h) -> {
+        return this.rejectHandlerEx((e, h) -> {
             rejectHandler.accept(e);
             return false;
         });
@@ -190,7 +190,7 @@ public class SimpleBufferTriggerBuilder<E, C> {
             throw new IllegalStateException("cannot enable back-pressure while reject handler was set.");
         }
         SimpleBufferTriggerBuilder<E1, C1> thisBuilder = (SimpleBufferTriggerBuilder<E1, C1>) this;
-        thisBuilder.rejectHandler = new BackPressureHandler<E1>();
+        thisBuilder.rejectHandler = new BackPressureHandler<>();
         return thisBuilder;
     }
 

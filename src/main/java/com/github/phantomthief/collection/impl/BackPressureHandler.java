@@ -11,7 +11,7 @@ import javax.annotation.Nullable;
 class BackPressureHandler<T> implements RejectHandler<T> {
 
     @Override
-    public boolean onReject(T element, @Nullable Condition condition) throws Throwable {
+    public boolean onReject(T element, @Nullable Condition condition) {
         assert condition != null;
         condition.awaitUninterruptibly();
         return true;

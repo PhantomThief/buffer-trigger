@@ -33,7 +33,6 @@ public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
 
     private final BlockingQueue<E> queue;
     private final int batchSize;
-    private final Supplier<Duration> linger;
     private final ThrowableConsumer<List<E>, Exception> consumer;
     private final BiConsumer<Throwable, List<E>> exceptionHandler;
     private final ScheduledExecutorService scheduledExecutorService;
@@ -41,7 +40,7 @@ public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
     private final AtomicBoolean running = new AtomicBoolean();
 
     BatchConsumeBlockingQueueTrigger(BatchConsumerTriggerBuilder<E> builder) {
-        this.linger = builder.linger;
+        Supplier<Duration> linger = builder.linger;
         this.batchSize = builder.batchSize;
         this.queue = new LinkedBlockingQueue<>(max(builder.bufferSize, batchSize));
         this.consumer = builder.consumer;

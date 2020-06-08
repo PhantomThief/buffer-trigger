@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 
@@ -30,8 +31,9 @@ class BackPressureTest {
     @Test
     void test() {
         List<String> consumed = new ArrayList<>();
+        List<String> backPressured = Collections.synchronizedList(new ArrayList<>());
         BufferTrigger<String> buffer = BufferTrigger.<String, List<String>> simple()
-                .enableBackPressure()
+                .enableBackPressure(backPressured::add)
                 .maxBufferCount(10)
                 .interval(1, SECONDS)
                 .setContainer(() -> synchronizedList(new ArrayList<>()), List::add)
@@ -52,6 +54,7 @@ class BackPressureTest {
             });
         }
         shutdownAndAwaitTermination(executor, 1, DAYS);
+        assertTrue(backPressured.size() > 10);
         buffer.manuallyDoTrigger();
         assertEquals(30, consumed.size());
         cost = System.currentTimeMillis() - cost;

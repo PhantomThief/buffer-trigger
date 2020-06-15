@@ -140,6 +140,9 @@ public class GenericSimpleBufferTriggerBuilder<E, C> {
     /**
      * disable internal switch lock for much more performances.
      * while it may make conflicts on enqueue and consumer logic.
+     *
+     * WARNING: the default switch lock is TRY-BEST mode while it may failed
+     * when the maximum of 65535 recursive attempts arrival.
      */
     @CheckReturnValue
     public GenericSimpleBufferTriggerBuilder<E, C> disableSwitchLock() {

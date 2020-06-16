@@ -10,7 +10,7 @@
 
     <properties>
         <slf4j-api.version>1.7.21</slf4j-api.version>
-        <guava.version>24.1.1</guava.version>
+        <guava.version>28.1-jre</guava.version>
         <more-lambdas.version>0.1.36</more-lambdas.version>
 
         <junit.version>5.6.1</junit.version>

@@ -32,4 +32,9 @@ public class LazyBufferTrigger<E> implements BufferTrigger<E> {
     public long getPendingChanges() {
         return this.factory.map(BufferTrigger::getPendingChanges).orElse(0L);
     }
+
+    @Override
+    public void close() {
+        this.factory.ifPresent(BufferTrigger::close);
+    }
 }

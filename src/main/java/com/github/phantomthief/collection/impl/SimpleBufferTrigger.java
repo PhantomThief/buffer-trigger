@@ -1,6 +1,8 @@
 package com.github.phantomthief.collection.impl;
 
+import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.base.Throwables.throwIfUnchecked;
+import static com.google.common.util.concurrent.MoreExecutors.shutdownAndAwaitTermination;
 import static java.lang.System.currentTimeMillis;
 import static java.util.concurrent.TimeUnit.DAYS;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
@@ -46,7 +48,9 @@ public class SimpleBufferTrigger<E, C> implements BufferTrigger<E> {
     private final ReadLock readLock;
     private final WriteLock writeLock;
     private final Condition writeCondition;
+    private final Runnable shutdownExecutor;
 
+    private volatile boolean shutdown;
     private volatile long lastConsumeTimestamp = currentTimeMillis();
 
     SimpleBufferTrigger(SimpleBufferTriggerBuilder<E, C> builder) {
@@ -70,6 +74,11 @@ public class SimpleBufferTrigger<E, C> implements BufferTrigger<E> {
         builder.scheduledExecutorService.schedule(
                 new TriggerRunnable(builder.scheduledExecutorService, builder.triggerStrategy),
                 DEFAULT_NEXT_TRIGGER_PERIOD, MILLISECONDS);
+        this.shutdownExecutor = () -> {
+            if (builder.usingInnerExecutor) {
+                shutdownAndAwaitTermination(builder.scheduledExecutorService, 1, DAYS);
+            }
+        };
     }
 
     /**
@@ -99,6 +108,8 @@ public class SimpleBufferTrigger<E, C> implements BufferTrigger<E> {
 
     @Override
     public void enqueue(E element) {
+        checkState(!shutdown, "buffer trigger was shutdown.");
+
         long currentCount = counter.get();
         long thisMaxBufferCount = maxBufferCount.getAsLong();
         if (thisMaxBufferCount > 0 && currentCount >= thisMaxBufferCount) {
@@ -195,6 +206,16 @@ public class SimpleBufferTrigger<E, C> implements BufferTrigger<E> {
         return counter.get();
     }
 
+    @Override
+    public void close() {
+        shutdown = true;
+        try {
+            manuallyDoTrigger();
+        } finally {
+            shutdownExecutor.run();
+        }
+    }
+
     public interface TriggerStrategy {
 
         TriggerResult canTrigger(long lastConsumeTimestamp, long changedCount);
@@ -249,7 +270,9 @@ public class SimpleBufferTrigger<E, C> implements BufferTrigger<E> {
                     logger.error("", e);
                 }
                 nextTrigPeriod = Math.max(0, nextTrigPeriod);
-                scheduledExecutorService.schedule(this, nextTrigPeriod, MILLISECONDS);
+                if (!shutdown) {
+                    scheduledExecutorService.schedule(this, nextTrigPeriod, MILLISECONDS);
+                }
             }
         }
     }

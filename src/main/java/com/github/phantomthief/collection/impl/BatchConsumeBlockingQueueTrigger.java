@@ -3,15 +3,19 @@ package com.github.phantomthief.collection.impl;
 import static com.github.phantomthief.concurrent.MoreFutures.scheduleWithDynamicDelay;
 import static com.github.phantomthief.util.MoreLocks.runWithLock;
 import static com.github.phantomthief.util.MoreLocks.runWithTryLock;
+import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.util.concurrent.MoreExecutors.shutdownAndAwaitTermination;
 import static com.google.common.util.concurrent.Uninterruptibles.putUninterruptibly;
 import static java.lang.Integer.max;
 import static java.lang.Math.min;
+import static java.util.concurrent.TimeUnit.DAYS;
 import static org.slf4j.LoggerFactory.getLogger;
 
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -38,6 +42,9 @@ public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
     private final ScheduledExecutorService scheduledExecutorService;
     private final ReentrantLock lock = new ReentrantLock();
     private final AtomicBoolean running = new AtomicBoolean();
+    private final Runnable shutdownExecutor;
+
+    private volatile boolean shutdown;
 
     BatchConsumeBlockingQueueTrigger(BatchConsumerTriggerBuilder<E> builder) {
         Supplier<Duration> linger = builder.linger;
@@ -46,7 +53,13 @@ public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
         this.consumer = builder.consumer;
         this.exceptionHandler = builder.exceptionHandler;
         this.scheduledExecutorService = builder.scheduledExecutorService;
-        scheduleWithDynamicDelay(scheduledExecutorService, linger, () -> doBatchConsumer(TriggerType.LINGER));
+        Future<?> future = scheduleWithDynamicDelay(scheduledExecutorService, linger, () -> doBatchConsumer(TriggerType.LINGER));
+        this.shutdownExecutor = () -> {
+            future.cancel(false);
+            if (builder.usingInnerExecutor) {
+                shutdownAndAwaitTermination(builder.scheduledExecutorService, 1, DAYS);
+            }
+        };
     }
 
     /**
@@ -60,6 +73,8 @@ public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
 
     @Override
     public void enqueue(E element) {
+        checkState(!shutdown, "buffer trigger was shutdown.");
+
         putUninterruptibly(queue, element);
         tryTrigBatchConsume();
     }
@@ -133,6 +148,16 @@ public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
     @Override
     public long getPendingChanges() {
         return queue.size();
+    }
+
+    @Override
+    public void close() {
+        shutdown = true;
+        try {
+            manuallyDoTrigger();
+        } finally {
+            shutdownExecutor.run();
+        }
     }
 
     /**

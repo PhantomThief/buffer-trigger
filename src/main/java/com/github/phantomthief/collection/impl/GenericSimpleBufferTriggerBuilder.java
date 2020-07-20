@@ -54,6 +54,9 @@ public class GenericSimpleBufferTriggerBuilder<E, C> {
         return this;
     }
 
+    /**
+     * If you create own ScheduledExecutorService, then you have to shutdown it yourself.
+     */
     @CheckReturnValue
     public GenericSimpleBufferTriggerBuilder<E, C>
             setScheduleExecutorService(ScheduledExecutorService scheduledExecutorService) {

@@ -10,8 +10,11 @@ import com.github.phantomthief.collection.impl.SimpleBufferTriggerBuilder;
 /**
  * @author w.vela
  */
-public interface BufferTrigger<E> {
+public interface BufferTrigger<E> extends AutoCloseable {
 
+    /**
+     * @throws IllegalStateException if the instance has been shutdown.
+     */
     void enqueue(E element);
 
     void manuallyDoTrigger();
@@ -48,4 +51,7 @@ public interface BufferTrigger<E> {
     static BatchConsumerTriggerBuilder<Object> batchBlockingTrigger() {
         return BatchConsumeBlockingQueueTrigger.newBuilder();
     }
+
+    @Override
+    void close(); // override to remove throws Exception.
 }

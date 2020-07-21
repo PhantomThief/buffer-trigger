@@ -29,6 +29,9 @@ public class GenericBatchConsumerTriggerBuilder<E> {
         return this;
     }
 
+    /**
+     * If you create own ScheduledExecutorService, then you have to shutdown it yourself.
+     */
     public GenericBatchConsumerTriggerBuilder<E>
             setScheduleExecutorService(ScheduledExecutorService scheduledExecutorService) {
         builder.setScheduleExecutorService(scheduledExecutorService);

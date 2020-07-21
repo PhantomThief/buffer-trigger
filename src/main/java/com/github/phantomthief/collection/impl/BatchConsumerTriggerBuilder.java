@@ -26,12 +26,16 @@ public final class BatchConsumerTriggerBuilder<E> {
     private static final Duration DEFAULT_LINGER = ofSeconds(1);
 
     ScheduledExecutorService scheduledExecutorService;
+    boolean usingInnerExecutor;
     Supplier<Duration> linger;
     int batchSize;
     int bufferSize;
     ThrowableConsumer<List<E>, Exception> consumer;
     BiConsumer<Throwable, List<E>> exceptionHandler;
 
+    /**
+     * If you create own ScheduledExecutorService, then you have to shutdown it yourself.
+     */
     public BatchConsumerTriggerBuilder<E>
             setScheduleExecutorService(ScheduledExecutorService scheduledExecutorService) {
         this.scheduledExecutorService = scheduledExecutorService;
@@ -135,6 +139,7 @@ public final class BatchConsumerTriggerBuilder<E> {
         }
         if (scheduledExecutorService == null) {
             scheduledExecutorService = makeScheduleExecutor();
+            usingInnerExecutor = true;
         }
     }
 

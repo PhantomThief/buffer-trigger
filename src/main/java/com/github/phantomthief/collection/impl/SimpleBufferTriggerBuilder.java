@@ -38,6 +38,7 @@ public class SimpleBufferTriggerBuilder<E, C> {
 
     TriggerStrategy triggerStrategy;
     ScheduledExecutorService scheduledExecutorService;
+    boolean usingInnerExecutor;
     Supplier<C> bufferFactory;
     ToIntBiFunction<C, E> queueAdder;
     ThrowableConsumer<C, Throwable> consumer;
@@ -80,6 +81,9 @@ public class SimpleBufferTriggerBuilder<E, C> {
         return thisBuilder;
     }
 
+    /**
+     * If you create own ScheduledExecutorService, then you have to shutdown it yourself.
+     */
     public SimpleBufferTriggerBuilder<E, C>
             setScheduleExecutorService(ScheduledExecutorService scheduledExecutorService) {
         this.scheduledExecutorService = scheduledExecutorService;
@@ -261,6 +265,7 @@ public class SimpleBufferTriggerBuilder<E, C> {
         }
         if (scheduledExecutorService == null) {
             scheduledExecutorService = makeScheduleExecutor();
+            usingInnerExecutor = true;
         }
     }
 

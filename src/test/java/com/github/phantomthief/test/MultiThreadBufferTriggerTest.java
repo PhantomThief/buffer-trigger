@@ -9,6 +9,8 @@ import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.github.phantomthief.collection.BufferTrigger;
 import com.github.phantomthief.collection.impl.SimpleBufferTrigger;
@@ -18,6 +20,7 @@ import com.github.phantomthief.collection.impl.SimpleBufferTrigger;
  */
 class MultiThreadBufferTriggerTest {
 
+    private static final Logger logger = LoggerFactory.getLogger(MultiThreadBufferTriggerTest.class);
     private Set<String> dealed;
 
     @Test
@@ -60,7 +63,7 @@ class MultiThreadBufferTriggerTest {
                 .on(3, TimeUnit.SECONDS, 1)
                 .on(2, TimeUnit.SECONDS, 10)
                 .on(1, TimeUnit.SECONDS, 10000)
-                .setExceptionHandler((e, c) -> System.err.println(c))
+                .setExceptionHandler((e, c) -> logger.info("on error:{}", c))
                 .consumer(this::exception)
                 .build();
         for (int i = 0; i < 1000; i++) {

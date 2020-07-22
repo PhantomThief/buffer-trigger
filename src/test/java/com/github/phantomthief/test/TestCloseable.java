@@ -60,9 +60,9 @@ class TestCloseable {
         AtomicInteger result = new AtomicInteger();
         AtomicInteger consumeCount = new AtomicInteger();
         BufferTrigger<String> trigger = BufferTrigger.<String, AtomicInteger> simple()
-                .setContainer(AtomicInteger::new, (it, c) -> {
+                .setContainerEx(AtomicInteger::new, (it, c) -> {
                     it.incrementAndGet();
-                    return true;
+                    return 1;
                 })
                 .setScheduleExecutorService(executor)
                 .interval(1, SECONDS)
@@ -70,6 +70,7 @@ class TestCloseable {
                     result.addAndGet(it.intValue());
                     consumeCount.incrementAndGet();
                 })
+                .setExceptionHandler((it, it2) -> {})
                 .build();
         trigger.close(); // no thing happen due to lazy
 
@@ -99,7 +100,7 @@ class TestCloseable {
         BufferTrigger<String> trigger = BufferTrigger.<String> batchBlocking()
                 .linger(1, SECONDS)
                 .batchSize(10)
-                .setConsumerEx(it -> {
+                .setConsumer(it -> {
                     result.addAndGet(it.size());
                     consumeCount.incrementAndGet();
                 })

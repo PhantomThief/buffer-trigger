@@ -4,7 +4,7 @@ import static com.github.phantomthief.collection.impl.SimpleBufferTrigger.Trigge
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.lang.Math.abs;
 import static java.lang.Math.min;
-import static java.lang.System.*;
+import static java.lang.System.currentTimeMillis;
 
 import java.util.Map.Entry;
 import java.util.SortedMap;
@@ -20,6 +20,12 @@ import com.github.phantomthief.collection.impl.SimpleBufferTrigger.TriggerStrate
  * save 900 1
  * save 300 10
  * save 60 10000
+ *
+ * 注意，这里的触发条件和 Kafka Producer 的 linger 不一样，并不是 时间和次数达到一个就触发一次
+ * 而是指定时间内累计到特定次数才触发，所以一般会有一个兜底的 1 次来做时间触发
+ *
+ * 更进一步，我们的场景大多数时候一般使用 {@link SimpleBufferTriggerBuilder#interval} 触发就能满足业务的基本需求
+ * 所以目前 {@link SimpleBufferTrigger} 没有提供类 Kafka Producer 的 linger 触发模式；
  *
  * @author w.vela
  * Created on 15/07/2016.

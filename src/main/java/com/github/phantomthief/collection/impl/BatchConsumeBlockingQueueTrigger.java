@@ -29,6 +29,11 @@ import com.github.phantomthief.collection.BufferTrigger;
 import com.github.phantomthief.util.ThrowableConsumer;
 
 /**
+ * {@link BufferTrigger}基于阻塞队列的批量消费触发器实现.
+ * <p>
+ * 该触发器适合生产者-消费者场景，缓存容器基于{@link LinkedBlockingQueue}队列实现.
+ * <p>
+ * 触发策略类似Kafka linger，批处理阈值与延迟等待时间满足其一即触发消费回调.
  * @author w.vela
  */
 public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
@@ -63,14 +68,18 @@ public class BatchConsumeBlockingQueueTrigger<E> implements BufferTrigger<E> {
     }
 
     /**
-     * use {@link com.github.phantomthief.collection.BufferTrigger#batchBlocking} instead
-     * or {@link com.github.phantomthief.collection.BufferTrigger#batchBlockingTrigger}
+     * 该方法即将废弃，可更换为{@link com.github.phantomthief.collection.BufferTrigger#batchBlocking}.
      */
     @Deprecated
     public static BatchConsumerTriggerBuilder<Object> newBuilder() {
         return new BatchConsumerTriggerBuilder<>();
     }
 
+    /**
+     * 将需要定时处理的元素推入队列.
+     * <p>
+     * 新元素入队列后，会检测一次当前队列元素数量，如满足批处理阈值，会触发一次消费回调.
+     */
     @Override
     public void enqueue(E element) {
         checkState(!shutdown, "buffer trigger was shutdown.");

@@ -19,6 +19,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 import java.util.function.ToIntBiFunction;
@@ -29,6 +30,11 @@ import com.github.phantomthief.collection.BufferTrigger;
 import com.github.phantomthief.util.ThrowableConsumer;
 
 /**
+ * {@link BufferTrigger}的通用实现，适合大多数业务场景
+ * <p>
+ * 消费触发策略会考虑消费回调函数的执行时间，实际执行间隔 = 理论执行间隔 - 消费回调函数执行时间；
+ * 如回调函数执行时间已超过理论执行间隔，将立即执行下一次消费任务.
+ *
  * @author w.vela
  */
 public class SimpleBufferTrigger<E, C> implements BufferTrigger<E> {
@@ -53,6 +59,9 @@ public class SimpleBufferTrigger<E, C> implements BufferTrigger<E> {
     private volatile boolean shutdown;
     private volatile long lastConsumeTimestamp = currentTimeMillis();
 
+    /**
+     * 使用提供的构造器创建SimpleBufferTrigger实例
+     */
     SimpleBufferTrigger(SimpleBufferTriggerBuilder<E, C> builder) {
         this.queueAdder = builder.queueAdder;
         this.bufferFactory = builder.bufferFactory;
@@ -82,8 +91,7 @@ public class SimpleBufferTrigger<E, C> implements BufferTrigger<E> {
     }
 
     /**
-     * use {@link com.github.phantomthief.collection.BufferTrigger#simple} instead
-     * or {@link com.github.phantomthief.collection.BufferTrigger#simpleTrigger}
+     * 该方法即将废弃，可更换为{@link BufferTrigger#simple()}创建适合大多数场景的通用实例.
      */
     @Deprecated
     public static SimpleBufferTriggerBuilder<Object, Object> newBuilder() {
@@ -91,13 +99,18 @@ public class SimpleBufferTrigger<E, C> implements BufferTrigger<E> {
     }
 
     /**
-     * use {@link com.github.phantomthief.collection.BufferTrigger#simple} instead
+     * 该方法即将废弃，可更换为{@link BufferTrigger#simple()}创建适合大多数场景的通用实例.
      */
     @Deprecated
     public static <E, C> GenericSimpleBufferTriggerBuilder<E, C> newGenericBuilder() {
         return new GenericSimpleBufferTriggerBuilder<>(newBuilder());
     }
 
+    /**
+     * 快捷创建附带计数器容器的{@link SimpleBufferTriggerBuilder}实例.
+     * <p>
+     * 目前不推荐使用
+     */
     public static SimpleBufferTriggerBuilder<Object, Map<Object, Integer>> newCounterBuilder() {
         return new SimpleBufferTriggerBuilder<Object, Map<Object, Integer>>()
                 .setContainer(ConcurrentHashMap::new, (map, element) -> {
@@ -106,6 +119,19 @@ public class SimpleBufferTrigger<E, C> implements BufferTrigger<E> {
                 });
     }
 
+    /**
+     * 将需要定时处理的元素推入缓存.
+     *
+     * <p>存在缓存容量检测，如果缓存已满，
+     * 且拒绝回调方法已通过{@link SimpleBufferTriggerBuilder#rejectHandler(Consumer)}设置，
+     * 则会回调该方法.
+     *
+     * <p>需要特别注意，该实现为了避免加锁引起的性能损耗，以及考虑到应用场景，缓存容量检测不进行严格计数，
+     * 在并发场景下缓存中实际元素数量会略微超过预设的最大缓存容量；
+     * 如需严格计数场景，请自行实现{@link BufferTrigger}.
+     *
+     * @param element 符合声明参数类型的元素
+     */
     @Override
     public void enqueue(E element) {
         checkState(!shutdown, "buffer trigger was shutdown.");
@@ -206,6 +232,15 @@ public class SimpleBufferTrigger<E, C> implements BufferTrigger<E> {
         return counter.get();
     }
 
+    /**
+     * 停止该实例，执行线程池shutdown操作.
+     * <p>
+     * 在停止实例前，会强制触发一次消费，用于清空缓存中尚未消费的元素.
+     * <p>
+     * 如未通过{@link GenericSimpleBufferTriggerBuilder#setScheduleExecutorService(ScheduledExecutorService)}
+     * 自定义计划任务线程池，会调用默认计划任务线程池shutdown()方法，如未停止成功，
+     * 会保留1天的超时时间再强制停止线程池.
+     */
     @Override
     public void close() {
         shutdown = true;
@@ -216,11 +251,22 @@ public class SimpleBufferTrigger<E, C> implements BufferTrigger<E> {
         }
     }
 
+    /**
+     * 触发消费策略接口.
+     * <p>
+     * 如需自定义消费策略，请参考{@link MultiIntervalTriggerStrategy}代码
+     */
     public interface TriggerStrategy {
 
+        /**
+         * 获取触发器执行结果，用于判断是否可执行消费回调
+         */
         TriggerResult canTrigger(long lastConsumeTimestamp, long changedCount);
     }
 
+    /**
+     * 触发器执行结果，计划任务内部使用，一般无需关注
+     */
     public static class TriggerResult {
 
         private static final TriggerResult EMPTY = new TriggerResult(false, DAYS.toMillis(1));

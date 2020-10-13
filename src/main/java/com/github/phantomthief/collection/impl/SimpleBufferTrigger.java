@@ -139,7 +139,24 @@ public class SimpleBufferTrigger<E, C> implements BufferTrigger<E> {
         long currentCount = counter.get();
         long thisMaxBufferCount = maxBufferCount.getAsLong();
         if (thisMaxBufferCount > 0 && currentCount >= thisMaxBufferCount) {
-            boolean pass = fireRejectHandler(element);
+            boolean pass = false;
+            if (rejectHandler != null) {
+                if (writeLock != null && writeCondition != null) {
+                    writeLock.lock(); // 这里采用 DCL，是为了避免部分消费情况下没有 signalAll 唤醒，导致的卡死问题
+                    // 判断堵塞的条件也的确应该在锁块内保护，之前的代码在临界区（counter）的保护上是有缺陷的
+                }
+                try {
+                    currentCount = counter.get();
+                    thisMaxBufferCount = maxBufferCount.getAsLong();
+                    if (thisMaxBufferCount > 0 && currentCount >= thisMaxBufferCount) {
+                        pass = fireRejectHandler(element);
+                    }
+                } finally {
+                    if (writeLock != null && writeCondition != null) {
+                        writeLock.unlock();
+                    }
+                }
+            }
             if (!pass) {
                 return;
             }
@@ -167,23 +184,12 @@ public class SimpleBufferTrigger<E, C> implements BufferTrigger<E> {
     }
 
     private boolean fireRejectHandler(E element) {
-        boolean pass = false;
-        if (rejectHandler != null) {
-            if (writeLock != null && writeCondition != null) {
-                writeLock.lock();
-            }
-            try {
-                pass = rejectHandler.onReject(element, writeCondition);
-            } catch (Throwable e) {
-                throwIfUnchecked(e);
-                throw new RuntimeException(e);
-            } finally {
-                if (writeLock != null && writeCondition != null) {
-                    writeLock.unlock();
-                }
-            }
+        try {
+            return rejectHandler.onReject(element, writeCondition);
+        } catch (Throwable e) {
+            throwIfUnchecked(e);
+            throw new RuntimeException(e);
         }
-        return pass;
     }
 
     @Override

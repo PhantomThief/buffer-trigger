@@ -43,6 +43,7 @@ public class SimpleBufferTrigger<E, C> implements BufferTrigger<E> {
 
     private static final long DEFAULT_NEXT_TRIGGER_PERIOD = TimeUnit.SECONDS.toMillis(1);
 
+    private final String name;
     private final AtomicLong counter = new AtomicLong();
     private final ThrowableConsumer<C, Throwable> consumer;
     private final ToIntBiFunction<C, E> queueAdder;
@@ -63,6 +64,7 @@ public class SimpleBufferTrigger<E, C> implements BufferTrigger<E> {
      * 使用提供的构造器创建SimpleBufferTrigger实例
      */
     SimpleBufferTrigger(SimpleBufferTriggerBuilder<E, C> builder) {
+        this.name = builder.name;
         this.queueAdder = builder.queueAdder;
         this.bufferFactory = builder.bufferFactory;
         this.consumer = builder.consumer;
@@ -327,5 +329,9 @@ public class SimpleBufferTrigger<E, C> implements BufferTrigger<E> {
                 }
             }
         }
+    }
+
+    public static void setupGlobalBackPressure(GlobalBackPressureListener listener) {
+        BackPressureHandler.setupGlobalBackPressureListener(listener);
     }
 }

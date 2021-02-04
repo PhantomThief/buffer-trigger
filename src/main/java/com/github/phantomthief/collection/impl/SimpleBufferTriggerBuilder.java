@@ -352,6 +352,9 @@ public class SimpleBufferTriggerBuilder<E, C> {
             scheduledExecutorService = makeScheduleExecutor();
             usingInnerExecutor = true;
         }
+        if (name != null && rejectHandler instanceof BackPressureHandler) {
+            ((BackPressureHandler<E>) rejectHandler).setName(name);
+        }
     }
 
     private ScheduledExecutorService makeScheduleExecutor() {

@@ -334,4 +334,8 @@ public class SimpleBufferTrigger<E, C> implements BufferTrigger<E> {
     public static void setupGlobalBackPressure(GlobalBackPressureListener listener) {
         BackPressureHandler.setupGlobalBackPressureListener(listener);
     }
+
+    public static void setupGlobalNameRegistry(NameRegistry nameRegistry) {
+        SimpleBufferTriggerBuilder.setupGlobalNameRegistry(nameRegistry);
+    }
 }

@@ -40,6 +40,7 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 public class SimpleBufferTriggerBuilder<E, C> {
 
     private static final Logger logger = LoggerFactory.getLogger(SimpleBufferTriggerBuilder.class);
+    private static NameRegistry globalNameRegistry;
 
     private boolean maxBufferCountWasSet = false;
 
@@ -317,6 +318,9 @@ public class SimpleBufferTriggerBuilder<E, C> {
      */
     public <E1> BufferTrigger<E1> build() {
         check();
+        if (globalNameRegistry != null && name == null) {
+            name = globalNameRegistry.name();
+        }
         return new LazyBufferTrigger<>(() -> {
             ensure();
             SimpleBufferTriggerBuilder<E1, C> builder =
@@ -364,5 +368,9 @@ public class SimpleBufferTriggerBuilder<E, C> {
                 new ThreadFactoryBuilder().setNameFormat(threadPattern)
                         .setDaemon(true)
                         .build());
+    }
+
+    static void setupGlobalNameRegistry(NameRegistry registry) {
+        globalNameRegistry = registry;
     }
 }

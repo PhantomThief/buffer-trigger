@@ -1,5 +1,7 @@
 package com.github.phantomthief.collection;
 
+import java.util.concurrent.ConcurrentHashMap;
+
 import com.github.phantomthief.collection.impl.BatchConsumeBlockingQueueTrigger;
 import com.github.phantomthief.collection.impl.BatchConsumerTriggerBuilder;
 import com.github.phantomthief.collection.impl.GenericBatchConsumerTriggerBuilder;
@@ -40,8 +42,9 @@ public interface BufferTrigger<E> extends AutoCloseable {
      * 推荐用该方法构造{@link SimpleBufferTrigger}实例，适用用大多数场景
      *
      * @param <E> 元素类型
-     * @param <C> 持有元素的容器类型，如使用默认容器实现（默认实现将{@link java.util.concurrent.ConcurrentHashMap}
-     * 包装为{@link java.util.Set})，建议传递<code>Set&lt;E&gt;</code>.
+     * @param <C> 持有元素的容器类型，如使用默认容器实现（不指定 {@link GenericSimpleBufferTriggerBuilder#setContainerEx}），默认为 {@link ConcurrentHashMap#newKeySet()}，
+     * <p>此时本泛型可以考虑设置为 <code>Set&lt;E&gt;</code>
+     * <p>注意，强烈不建议使用默认容器，任何时候，都应该优先考虑自行设计容器类型!
      * @return {@link GenericSimpleBufferTriggerBuilder} 实例
      */
     static <E, C> GenericSimpleBufferTriggerBuilder<E, C> simple() {

@@ -141,7 +141,7 @@ public class SimpleBufferTrigger<E, C> implements BufferTrigger<E> {
         long currentCount = counter.get();
         long thisMaxBufferCount = maxBufferCount.getAsLong();
         if (thisMaxBufferCount > 0 && currentCount >= thisMaxBufferCount) {
-            boolean pass = false;
+            boolean pass = true;
             if (rejectHandler != null) {
                 if (writeLock != null && writeCondition != null) {
                     writeLock.lock(); // 这里采用 DCL，是为了避免部分消费情况下没有 signalAll 唤醒，导致的卡死问题

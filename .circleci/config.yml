@@ -1,0 +1,62 @@
+version: 2.0
+
+jobs:
+  test:
+    parallelism: 2
+    docker:
+      - image: cimg/openjdk:17.0.1
+        auth:
+          username: mydockerhub-user
+          password: $DOCKERHUB_PASSWORD  # context / project UI env-var reference
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-dependencies-{{ checksum "pom.xml" }}
+            - v1-dependencies-
+      - attach_workspace:
+          at: ./target
+      - run: |
+          ./mvnw \
+          -Dtest=$(for file in $(circleci tests glob "src/test/**/**.java" \
+          | circleci tests split --split-by=timings); \
+          do basename $file \
+          | sed -e "s/.java/,/"; \
+          done | tr -d '\r\n') \
+          -e test verify
+      - store_test_results:
+          path: target/surefire-reports
+      - store_artifacts:
+          path: target/site/jacoco/index.html
+
+  build:
+    docker:
+      - image: cimg/openjdk:17.0.1
+        auth:
+          username: mydockerhub-user
+          password: $DOCKERHUB_PASSWORD  # context / project UI env-var reference
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-dependencies-{{ checksum "pom.xml" }}
+            - v1-dependencies-
+      - run: ./mvnw -Dmaven.test.skip=true package
+      - save_cache:
+          paths:
+            - ~/.m2
+          key: v1-dependencies-{{ checksum "pom.xml" }}
+      - persist_to_workspace:
+          root: ./
+          paths:
+            - target/
+
+workflows:
+  version: 2
+
+  build-then-test:
+    jobs:
+      - build
+      - test:
+          requires:
+            - build

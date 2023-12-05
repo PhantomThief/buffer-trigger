@@ -14,7 +14,7 @@
         <more-lambdas.version>0.1.53</more-lambdas.version>
 
         <junit.version>5.9.0</junit.version>
-        <logback-classic.version>1.1.8</logback-classic.version>
+        <logback-classic.version>1.2.13</logback-classic.version>
 
         <jsr305.version>3.0.2</jsr305.version>
 
